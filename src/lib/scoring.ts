@@ -152,7 +152,69 @@ export interface AIScoringResult {
   justifications: Record<string, string>;
 }
 
+export interface UnifiedAssessmentResult {
+  extractedText: string;
+  scores: Record<string, number>;
+  justifications: Record<string, string>;
+  feedback: {
+    student: string;
+    teacher: string;
+    parent: string;
+    formal: string;
+  };
+}
+
 /**
+ * Unified assessment using OpenAI GPT-4o
+ * Handles text extraction, scoring, and feedback generation in one call
+ */
+export async function assessWritingWithOpenAI(
+  images: string[], // base64 data URLs
+  rubric: Rubric
+): Promise<UnifiedAssessmentResult> {
+  try {
+    const response = await fetch(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/assess-writing`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
+        body: JSON.stringify({ images, rubric }),
+      }
+    );
+
+    if (!response.ok) {
+      const error = await response.json();
+      
+      if (response.status === 429) {
+        throw new Error('Rate limit exceeded. Please wait a moment and try again.');
+      }
+      
+      if (response.status === 401 || response.status === 402) {
+        throw new Error('Invalid or expired OpenAI API key. Please check your API key settings.');
+      }
+      
+      throw new Error(error.error || 'Failed to assess writing');
+    }
+
+    const result = await response.json();
+    
+    return {
+      extractedText: result.extractedText,
+      scores: result.scores,
+      justifications: result.justifications,
+      feedback: result.feedback
+    };
+  } catch (error) {
+    console.error('OpenAI Assessment Error:', error);
+    throw error; // Re-throw to be handled by the UI
+  }
+}
+
+/**
+ * Legacy function - kept for backward compatibility
  * Score writing using AI against the actual rubric
  * This replaces rule-based heuristics with rubric-aware AI assessment
  */
