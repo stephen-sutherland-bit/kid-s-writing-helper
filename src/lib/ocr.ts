@@ -138,9 +138,9 @@ export async function extractTextFromImage(
     
     const processedImage = await preprocessImage(imageFile);
     
-    // Configure Tesseract for handwritten text
+    // Configure Tesseract - optimized for handwritten text
     const result = await Tesseract.recognize(processedImage, 'eng', {
-      tessedit_pageseg_mode: '6', // Assume single uniform block of text
+      tessedit_pageseg_mode: '4', // Assume single column of text of variable sizes
       tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789.,!?\'"-:;() \n\t',
       preserve_interword_spaces: '1',
       logger: (m: any) => {
