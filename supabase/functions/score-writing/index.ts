@@ -36,7 +36,7 @@ serve(async (req) => {
       ).join('\n')}`;
     }).join('\n\n');
 
-    console.log('Calling Lovable AI for writing assessment...');
+    console.log('Calling AI service for writing assessment...');
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',

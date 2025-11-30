@@ -1,4 +1,4 @@
-// Handwriting OCR using Lovable AI with Gemini Vision
+// Handwriting OCR using AI-powered Gemini Vision
 
 export interface OcrProgress {
   status: string;
@@ -27,7 +27,7 @@ async function fileToBase64(file: File): Promise<string> {
 
 /**
  * Extract text from image using AI-powered OCR
- * Uses Lovable AI with Gemini Vision for accurate handwriting recognition
+ * Uses Gemini Vision for accurate handwriting recognition
  */
 export async function extractTextFromImage(
   imageFile: File,

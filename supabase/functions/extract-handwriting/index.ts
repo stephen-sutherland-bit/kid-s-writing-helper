@@ -29,7 +29,7 @@ serve(async (req) => {
       );
     }
 
-    console.log('Calling Lovable AI for handwriting extraction...');
+    console.log('Calling AI service for handwriting extraction...');
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
