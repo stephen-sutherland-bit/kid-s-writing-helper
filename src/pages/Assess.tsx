@@ -22,31 +22,55 @@ const Assess = () => {
   const [ocrText, setOcrText] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [ocrProgress, setOcrProgress] = useState<OcrProgress>({ status: "", progress: 0 });
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
 
-  const handleImageUpload = async (file: File) => {
+  const handleImageUpload = async (files: File[]) => {
+    if (files.length === 0) return;
+
     try {
-      validateImageFile(file);
+      // Validate all files first
+      files.forEach(validateImageFile);
 
-      // Show preview
-      const reader = new FileReader();
-      reader.onload = (e) => setImagePreview(e.target?.result as string);
-      reader.readAsDataURL(file);
+      // Show all previews
+      const previews: string[] = [];
+      for (const file of files) {
+        const reader = new FileReader();
+        const preview = await new Promise<string>((resolve) => {
+          reader.onload = (e) => resolve(e.target?.result as string);
+          reader.readAsDataURL(file);
+        });
+        previews.push(preview);
+      }
+      setImagePreviews(previews);
 
       setIsProcessing(true);
-      setOcrProgress({ status: "Initializing OCR...", progress: 0 });
+      const extractedTexts: string[] = [];
 
-      const text = await extractTextFromImage(file, setOcrProgress);
+      // Process each image
+      for (let i = 0; i < files.length; i++) {
+        setOcrProgress({ 
+          status: `Processing image ${i + 1} of ${files.length}...`, 
+          progress: 0 
+        });
 
-      if (!text.trim()) {
-        throw new Error("No text detected in the image. Please try a clearer photo.");
+        const text = await extractTextFromImage(files[i], setOcrProgress);
+        
+        if (text.trim()) {
+          extractedTexts.push(text);
+        }
       }
 
-      setOcrText(text);
-      storage.saveLastOcrText(text);
+      if (extractedTexts.length === 0) {
+        throw new Error("No text detected in any images. Please try clearer photos.");
+      }
+
+      // Combine all extracted text
+      const combinedText = extractedTexts.join("\n\n");
+      setOcrText(combinedText);
+      storage.saveLastOcrText(combinedText);
 
       toast({
-        title: "Text extracted successfully! ✓",
+        title: `Text extracted from ${extractedTexts.length} image${extractedTexts.length > 1 ? 's' : ''}! ✓`,
         description: "You can now edit the text or proceed to score the writing.",
       });
     } catch (error: any) {
@@ -62,8 +86,8 @@ const Assess = () => {
   };
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) handleImageUpload(file);
+    const files = Array.from(event.target.files || []);
+    if (files.length > 0) handleImageUpload(files);
   };
 
   const handleScoreWriting = () => {
@@ -108,31 +132,22 @@ const Assess = () => {
       'image/png': ['.png'],
       'image/webp': ['.webp']
     },
-    multiple: false,
+    multiple: true,
     maxSize: 10 * 1024 * 1024, // 10MB
     disabled: isProcessing,
     onDrop: (acceptedFiles, fileRejections) => {
-      // If multiple files dropped, take the first one
       if (acceptedFiles.length > 0) {
-        if (acceptedFiles.length > 1) {
-          toast({
-            title: "Multiple files detected",
-            description: "Using the first image only. Please drop one image at a time.",
-          });
-        }
-        handleImageUpload(acceptedFiles[0]);
+        handleImageUpload(acceptedFiles);
       } else if (fileRejections.length > 0) {
         const rejection = fileRejections[0];
         const error = rejection.errors[0];
         
-        let errorMessage = "Please upload a valid image file";
+        let errorMessage = "Please upload valid image files";
         
         if (error.code === 'file-too-large') {
-          errorMessage = "Image is too large. Please use an image under 10MB.";
+          errorMessage = "One or more images are too large. Please use images under 10MB.";
         } else if (error.code === 'file-invalid-type') {
           errorMessage = "Invalid file type. Please use JPEG, PNG, or WebP images.";
-        } else if (error.code === 'too-many-files') {
-          errorMessage = "Please drop only one image at a time.";
         }
         
         toast({
@@ -168,13 +183,17 @@ const Assess = () => {
           <Card className="p-6 gentle-shadow">
             <h2 className="text-xl font-semibold text-foreground mb-4">Upload Writing Sample</h2>
 
-            {imagePreview && (
+            {imagePreviews.length > 0 && (
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="mb-4 rounded-xl overflow-hidden border-2 border-border"
+                className="mb-4 space-y-2"
               >
-                <img src={imagePreview} alt="Preview" className="w-full h-48 object-cover" />
+                {imagePreviews.map((preview, index) => (
+                  <div key={index} className="rounded-xl overflow-hidden border-2 border-border">
+                    <img src={preview} alt={`Preview ${index + 1}`} className="w-full h-32 object-cover" />
+                  </div>
+                ))}
               </motion.div>
             )}
 
@@ -199,10 +218,10 @@ const Assess = () => {
                 <FileImage className={`w-12 h-12 mx-auto mb-3 ${isDragActive ? 'text-primary' : 'text-muted-foreground'}`} />
               </motion.div>
               <p className="font-medium text-foreground mb-1">
-                {isDragActive ? "Drop your image here!" : "Drag & drop an image here"}
+                {isDragActive ? "Drop your images here!" : "Drag & drop images here"}
               </p>
               <p className="text-sm text-muted-foreground">
-                {isDragActive ? "Release to upload" : "or use the buttons below • One image at a time"}
+                {isDragActive ? "Release to upload" : "or use the buttons below • Multiple images supported"}
               </p>
             </div>
 
@@ -230,6 +249,7 @@ const Assess = () => {
                 ref={fileInputRef}
                 type="file"
                 accept="image/jpeg,image/jpg,image/png,image/webp"
+                multiple
                 onChange={handleFileSelect}
                 className="hidden"
               />
