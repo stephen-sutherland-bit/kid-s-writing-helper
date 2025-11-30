@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { ArrowLeft, Camera, Upload, Loader2, Sparkles, ImageIcon, Scissors, AlertCircle, Type, X, Plus } from "lucide-react";
 import { extractTextFromImage, validateImageFile, OcrProgress } from "@/lib/ocr";
-import { scoreWriting } from "@/lib/scoring";
+import { scoreWritingWithAI } from "@/lib/scoring";
 import { generateFeedback } from "@/lib/feedback";
 import { storage } from "@/lib/storage";
 import { useToast } from "@/hooks/use-toast";
@@ -241,39 +241,74 @@ const Assess = () => {
     }
   };
 
-  const handleScoreWriting = () => {
+  const handleScoreWriting = async () => {
     if (!text.trim()) {
       toast({
         title: "No text to score",
-        description: "Please enter or extract text first.",
+        description: "Please extract text from an image first",
         variant: "destructive",
       });
       return;
     }
 
-    // Score the writing
-    const scores = scoreWriting(text);
+    const rubric = storage.getRubric();
+    if (!rubric) {
+      toast({
+        title: "No rubric loaded",
+        description: "Please upload a rubric first in the Rubric page",
+        variant: "destructive",
+      });
+      return;
+    }
 
-    // Generate all feedback modes
-    const feedback = {
-      simple: generateFeedback(scores, text, 'simple'),
-      report: generateFeedback(scores, text, 'report'),
-      advanced: generateFeedback(scores, text, 'advanced'),
-    };
+    setIsProcessing(true);
 
-    // Save assessment
-    const assessment = {
-      id: Date.now().toString(),
-      text: text,
-      scores,
-      feedback,
-      timestamp: new Date().toISOString(),
-    };
+    try {
+      toast({
+        title: "Analyzing writing...",
+        description: "Using AI to score against your rubric criteria",
+      });
 
-    storage.saveAssessment(assessment);
+      // Score using AI against the actual rubric
+      const { scores, justifications } = await scoreWritingWithAI(text, rubric);
 
-    // Navigate to results
-    navigate(`/results/${assessment.id}`);
+      // Generate all feedback modes with AI justifications
+      const simpleFeedback = generateFeedback(scores, text, 'simple', justifications);
+      const reportFeedback = generateFeedback(scores, text, 'report', justifications);
+      const advancedFeedback = generateFeedback(scores, text, 'advanced', justifications);
+
+      // Save assessment
+      const assessment = {
+        id: Date.now().toString(),
+        text,
+        scores,
+        feedback: {
+          simple: simpleFeedback,
+          report: reportFeedback,
+          advanced: advancedFeedback,
+        },
+        timestamp: new Date().toISOString(),
+      };
+
+      storage.saveAssessment(assessment);
+
+      toast({
+        title: "Assessment complete! ✓",
+        description: "Writing has been scored using AI against your rubric",
+      });
+
+      // Navigate to results
+      setTimeout(() => navigate(`/results/${assessment.id}`), 800);
+    } catch (error) {
+      console.error('Scoring error:', error);
+      toast({
+        title: "Scoring failed",
+        description: error instanceof Error ? error.message : "There was an error scoring the writing. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const handleClearAll = () => {

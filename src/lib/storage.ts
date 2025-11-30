@@ -9,6 +9,7 @@ export interface RubricCategory {
 export interface Rubric {
   categories: RubricCategory[];
   lastUpdated: string;
+  rawText?: string; // Full text from PDF for AI reference
 }
 
 export interface Assessment {

@@ -1,0 +1,7 @@
+project_id = "utdsfzjgbayyfnjckmnc"
+
+[functions.extract-handwriting]
+verify_jwt = false
+
+[functions.score-writing]
+verify_jwt = false

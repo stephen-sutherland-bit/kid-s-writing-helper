@@ -1,8 +1,13 @@
-// Feedback generation in three tones
+// Feedback generation in three tones with AI justifications
 
 export type FeedbackMode = 'simple' | 'report' | 'advanced';
 
-export function generateFeedback(scores: Record<string, number>, text: string, mode: FeedbackMode): string {
+export function generateFeedback(
+  scores: Record<string, number>, 
+  text: string, 
+  mode: FeedbackMode,
+  justifications?: Record<string, string>
+): string {
   const avgScore = Object.values(scores).reduce((a, b) => a + b, 0) / Object.keys(scores).length;
   const strengths: string[] = [];
   const improvements: string[] = [];
@@ -21,10 +26,10 @@ export function generateFeedback(scores: Record<string, number>, text: string, m
       return generateSimpleFeedback(avgScore, strengths[0]);
       
     case 'report':
-      return generateReportFeedback(scores, strengths, improvements);
+      return generateReportFeedback(scores, strengths, improvements, justifications);
       
     case 'advanced':
-      return generateAdvancedFeedback(scores, strengths, improvements, text);
+      return generateAdvancedFeedback(scores, strengths, improvements, text, justifications);
       
     default:
       return generateSimpleFeedback(avgScore, strengths[0]);
@@ -44,7 +49,12 @@ function generateSimpleFeedback(avgScore: number, topStrength?: string): string 
   }
 }
 
-function generateReportFeedback(scores: Record<string, number>, strengths: string[], improvements: string[]): string {
+function generateReportFeedback(
+  scores: Record<string, number>, 
+  strengths: string[], 
+  improvements: string[],
+  justifications?: Record<string, string>
+): string {
   let feedback = "**Assessment Summary**\n\n";
   
   // Start with strengths
@@ -84,10 +94,26 @@ function generateReportFeedback(scores: Record<string, number>, strengths: strin
   feedback += "\n\n**Next Steps:**\n";
   feedback += "Continue to encourage regular writing practice and celebrate progress. Focus on one or two areas at a time for improvement.";
   
+  // Add AI justifications if available
+  if (justifications && Object.keys(justifications).length > 0) {
+    feedback += "\n\n**Detailed Assessment Notes:**\n";
+    Object.entries(justifications).forEach(([category, note]) => {
+      if (note && note !== 'Assessed using automated heuristics') {
+        feedback += `- **${category}:** ${note}\n`;
+      }
+    });
+  }
+  
   return feedback;
 }
 
-function generateAdvancedFeedback(scores: Record<string, number>, strengths: string[], improvements: string[], text: string): string {
+function generateAdvancedFeedback(
+  scores: Record<string, number>, 
+  strengths: string[], 
+  improvements: string[], 
+  text: string,
+  justifications?: Record<string, string>
+): string {
   let feedback = "**Advanced Writing Analysis**\n\n";
   
   feedback += "**Quantitative Assessment:**\n";
@@ -138,6 +164,16 @@ function generateAdvancedFeedback(scores: Record<string, number>, strengths: str
   if (improvements.length > 0) {
     improvements.forEach(area => {
       feedback += `- Implement targeted instruction in ${area.toLowerCase()} through scaffolded activities and modeled writing.\n`;
+    });
+  }
+  
+  // Add detailed AI justifications if available
+  if (justifications && Object.keys(justifications).length > 0) {
+    feedback += "\n\n**Evidence-Based Assessment Details:**\n";
+    Object.entries(justifications).forEach(([category, note]) => {
+      if (note && note !== 'Assessed using automated heuristics') {
+        feedback += `\n**${category}:**\n${note}\n`;
+      }
     });
   }
   
