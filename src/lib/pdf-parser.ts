@@ -2,8 +2,12 @@
 import * as pdfjsLib from 'pdfjs-dist';
 import { Rubric, RubricCategory } from './storage';
 
-// Configure PDF.js worker
-pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+// Configure PDF.js worker with fallback
+try {
+  pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+} catch (error) {
+  console.error('Failed to set PDF.js worker:', error);
+}
 
 export interface ParsedRubric {
   rubric: Rubric;
@@ -15,8 +19,11 @@ export interface ParsedRubric {
  */
 export async function parsePdfRubric(file: File): Promise<ParsedRubric> {
   try {
+    console.log('Starting PDF parse, file size:', file.size);
     const arrayBuffer = await file.arrayBuffer();
+    console.log('ArrayBuffer created, loading PDF...');
     const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    console.log('PDF loaded, pages:', pdf.numPages);
     
     let fullText = '';
     
@@ -44,7 +51,8 @@ export async function parsePdfRubric(file: File): Promise<ParsedRubric> {
     };
   } catch (error) {
     console.error('Error parsing PDF:', error);
-    throw new Error('Failed to parse PDF. Please ensure it\'s a valid e-asTTle rubric.');
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    throw new Error(`Failed to parse PDF: ${errorMessage}. Please ensure it's a valid PDF file.`);
   }
 }
 
