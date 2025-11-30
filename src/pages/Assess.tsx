@@ -30,6 +30,8 @@ const Assess = () => {
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [selectedPageIndex, setSelectedPageIndex] = useState<number>(0);
   const [isProcessingAllPages, setIsProcessingAllPages] = useState(false);
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     accept: { 'image/*': ['.jpeg', '.jpg', '.png', '.webp'] },
@@ -142,6 +144,58 @@ const Assess = () => {
     if (selectedPageIndex >= index && selectedPageIndex > 0) {
       setSelectedPageIndex(selectedPageIndex - 1);
     }
+  };
+
+  const handleDragStart = (index: number) => {
+    setDraggedIndex(index);
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    setDragOverIndex(index);
+  };
+
+  const handleDrop = (e: React.DragEvent, dropIndex: number) => {
+    e.preventDefault();
+    
+    if (draggedIndex === null || draggedIndex === dropIndex) {
+      setDraggedIndex(null);
+      setDragOverIndex(null);
+      return;
+    }
+
+    // Reorder both arrays
+    const newPreviews = [...imagePreviews];
+    const newFiles = [...pendingFiles];
+    
+    const draggedPreview = newPreviews[draggedIndex];
+    const draggedFile = newFiles[draggedIndex];
+    
+    newPreviews.splice(draggedIndex, 1);
+    newFiles.splice(draggedIndex, 1);
+    
+    newPreviews.splice(dropIndex, 0, draggedPreview);
+    newFiles.splice(dropIndex, 0, draggedFile);
+    
+    setImagePreviews(newPreviews);
+    setPendingFiles(newFiles);
+    
+    // Adjust selected page index if needed
+    if (selectedPageIndex === draggedIndex) {
+      setSelectedPageIndex(dropIndex);
+    } else if (draggedIndex < selectedPageIndex && dropIndex >= selectedPageIndex) {
+      setSelectedPageIndex(selectedPageIndex - 1);
+    } else if (draggedIndex > selectedPageIndex && dropIndex <= selectedPageIndex) {
+      setSelectedPageIndex(selectedPageIndex + 1);
+    }
+    
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedIndex(null);
+    setDragOverIndex(null);
   };
 
   const handleCropComplete = async (croppedBlob: Blob) => {
@@ -307,7 +361,6 @@ const Assess = () => {
                 </Button>
 
                 <input
-                  {...getInputProps()}
                   ref={fileInputRef}
                   type="file"
                   accept="image/jpeg,image/jpg,image/png,image/webp"
@@ -334,7 +387,7 @@ const Assess = () => {
         {imagePreviews.length > 0 && !text.trim() && (
           <div className="grid lg:grid-cols-2 gap-6">
             <Card className="p-6 gentle-shadow">
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
                   <ImageIcon className="w-5 h-5 text-primary" />
                   <h2 className="text-xl font-semibold text-foreground">
@@ -352,19 +405,41 @@ const Assess = () => {
                 </Button>
               </div>
               
+              {imagePreviews.length > 1 && (
+                <p className="text-xs text-muted-foreground mb-4">
+                  💡 Drag pages to reorder them
+                </p>
+              )}
+              
               <div className="grid grid-cols-2 gap-3">
                 {imagePreviews.map((preview, index) => (
-                  <div key={index} className="relative group">
+                  <div 
+                    key={index} 
+                    className="relative group"
+                    draggable
+                    onDragStart={() => handleDragStart(index)}
+                    onDragOver={(e) => handleDragOver(e, index)}
+                    onDrop={(e) => handleDrop(e, index)}
+                    onDragEnd={handleDragEnd}
+                  >
                     <div 
-                      className={`rounded-xl overflow-hidden border-2 cursor-pointer transition-all ${
-                        selectedPageIndex === index 
+                      className={`rounded-xl overflow-hidden border-2 cursor-move transition-all ${
+                        draggedIndex === index 
+                          ? 'opacity-50 scale-95' 
+                          : dragOverIndex === index 
+                          ? 'border-primary ring-2 ring-primary/40 scale-105' 
+                          : selectedPageIndex === index 
                           ? 'border-primary ring-2 ring-primary/20' 
                           : 'border-border hover:border-primary/50'
                       }`}
                       onClick={() => setSelectedPageIndex(index)}
                     >
-                      <img src={preview} alt={`Page ${index + 1}`} className="w-full h-auto object-contain" />
-                      <div className="absolute top-2 left-2 bg-background/90 backdrop-blur-sm text-xs font-semibold px-2 py-1 rounded-lg">
+                      <img 
+                        src={preview} 
+                        alt={`Page ${index + 1}`} 
+                        className="w-full h-auto object-contain pointer-events-none" 
+                      />
+                      <div className="absolute top-2 left-2 bg-background/90 backdrop-blur-sm text-xs font-semibold px-2 py-1 rounded-lg pointer-events-none">
                         Page {index + 1}
                       </div>
                     </div>
