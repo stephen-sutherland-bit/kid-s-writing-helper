@@ -20,6 +20,7 @@ const Assess = () => {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
+  const addPagesInputRef = useRef<HTMLInputElement>(null);
 
   const [text, setText] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
@@ -395,7 +396,7 @@ const Assess = () => {
                   </h2>
                 </div>
                 <Button
-                  onClick={() => fileInputRef.current?.click()}
+                  onClick={() => addPagesInputRef.current?.click()}
                   variant="outline"
                   size="sm"
                   className="rounded-xl"
@@ -410,6 +411,15 @@ const Assess = () => {
                   💡 Drag pages to reorder them
                 </p>
               )}
+              
+              <input
+                ref={addPagesInputRef}
+                type="file"
+                accept="image/jpeg,image/jpg,image/png,image/webp"
+                onChange={handleFileSelect}
+                multiple
+                className="hidden"
+              />
               
               <div className="grid grid-cols-2 gap-3">
                 {imagePreviews.map((preview, index) => (
