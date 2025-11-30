@@ -103,15 +103,15 @@ const Assess = () => {
 
         toast({
           title: `Text extracted! ✓`,
-          description: `Confidence: ${result.confidence}%. ${result.confidence < 70 ? 'OCR works best for printed text. Please review carefully.' : 'Review and edit as needed.'}`,
+          description: `Handwriting recognized. Please review and edit as needed before scoring.`,
         });
       } else {
-        throw new Error("No text detected. OCR works best for printed text.");
+        throw new Error("No text detected. Please try a clearer photo or crop just the handwriting area.");
       }
     } catch (error: any) {
       toast({
-        title: "OCR failed",
-        description: error.message || "OCR is designed for printed text. Consider typing the text manually.",
+        title: "Text extraction failed",
+        description: error.message || "Please try a clearer photo or crop just the handwriting area.",
         variant: "destructive",
       });
     } finally {
@@ -293,9 +293,16 @@ const Assess = () => {
                 <h2 className="text-xl font-semibold text-foreground">Extract Child's Writing</h2>
               </div>
               
-              <p className="text-muted-foreground mb-6">
+              <p className="text-muted-foreground mb-4">
                 Crop the image to select only the child's handwritten text area, then extract the text for grading.
               </p>
+
+              <Alert className="mb-6 bg-primary/5 border-primary/20">
+                <AlertCircle className="h-4 w-4 text-primary" />
+                <AlertDescription className="text-sm">
+                  <strong>First time?</strong> The AI model will download once (~150MB). After that, it works instantly offline!
+                </AlertDescription>
+              </Alert>
 
               <Button
                 onClick={handleTryOCR}
