@@ -1,73 +1,111 @@
-# Welcome to your Lovable project
+# e-asTTle Writing Helper
 
-## Project info
+A warm, Montessori-inspired web application for assessing student writing using the e-asTTle rubric. Everything runs client-side with no backend required.
 
-**URL**: https://lovable.dev/projects/64edc446-5e4e-4b2e-98e1-97b28d1c5a66
+## 🎯 Features
 
-## How can I edit this code?
+- **Custom Rubric Upload**: Upload PDF rubrics or use the default e-asTTle structure
+- **Photo OCR**: Take photos or upload images of handwritten work
+- **Automatic Scoring**: Rule-based scoring across 7 rubric categories
+- **Three Feedback Modes**:
+  - Simple: Kid-friendly, encouraging feedback
+  - Report: Teacher-ready assessment summaries
+  - Advanced: Formal, academic analysis
+- **Offline-First**: All processing happens in the browser
+- **Privacy-Focused**: No data sent to servers
+- **Mobile-Friendly**: Works on phones, tablets, and desktops
 
-There are several ways of editing your application.
+## 📋 Rubric Categories
 
-**Use Lovable**
+1. Ideas
+2. Structure
+3. Organisation
+4. Vocabulary
+5. Sentence Style
+6. Punctuation
+7. Spelling
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/64edc446-5e4e-4b2e-98e1-97b28d1c5a66) and start prompting.
+## 🛠️ Tech Stack
 
-Changes made via Lovable will be committed automatically to this repo.
+- **Frontend**: React, TypeScript, Tailwind CSS
+- **OCR**: Tesseract.js (browser-based)
+- **PDF Parsing**: pdfjs-dist
+- **Animations**: Framer Motion
+- **UI Components**: shadcn/ui
+- **Storage**: localStorage
+- **Routing**: React Router
 
-**Use your preferred IDE**
+## 🚀 Getting Started
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+### Installation
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+```bash
+npm install
+```
 
-Follow these steps:
+### Development
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+```bash
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+Open [http://localhost:8080](http://localhost:8080) to view the app.
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+### Build
 
-**Use GitHub Codespaces**
+```bash
+npm run build
+```
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+### Deploy to GitHub Pages
 
-## What technologies are used for this project?
+```bash
+npm run build
+# Then deploy the dist/ folder to GitHub Pages
+```
 
-This project is built with:
+## 📱 How to Use
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+1. **Upload Rubric** (optional): Go to Rubric page and upload your custom PDF, or use the default
+2. **Start Assessment**: Click "Start New Assessment" on the home page
+3. **Capture Writing**: Take a photo or upload an image of student writing
+4. **Edit Text**: Review and edit the OCR text if needed
+5. **Score Writing**: Click to generate scores and feedback
+6. **View Results**: See scores, choose feedback mode, copy or download results
 
-## How can I deploy this project?
+## 🎨 Design Philosophy
 
-Simply open [Lovable](https://lovable.dev/projects/64edc446-5e4e-4b2e-98e1-97b28d1c5a66) and click on Share -> Publish.
+Built with Montessori principles in mind:
+- Warm, inviting color palette (sky blue, soft pink, sage green, sunshine yellow)
+- Rounded, friendly typography (Nunito font)
+- Gentle animations and transitions
+- Non-judgmental, encouraging language
+- Clean, uncluttered interface
 
-## Can I connect a custom domain to my Lovable project?
+## 🔒 Privacy & Data
 
-Yes, you can!
+- All processing happens in your browser
+- No data sent to external servers
+- Rubric and assessments stored in localStorage only
+- Works offline after initial load
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+## 📝 Notes
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+- OCR works best with clear, well-lit photos
+- Supported image formats: JPEG, PNG, WebP
+- Maximum image size: 10MB
+- PDF parsing currently uses default rubric structure (full parsing can be implemented)
+
+## 🤝 Contributing
+
+This is an open-source educational tool. Contributions welcome!
+
+## 📄 License
+
+MIT License - feel free to use and modify for educational purposes.
+
+## 🌟 Acknowledgments
+
+- e-asTTle writing rubric by the New Zealand Ministry of Education
+- Tesseract.js for browser-based OCR
+- shadcn/ui for beautiful components
