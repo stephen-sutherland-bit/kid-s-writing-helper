@@ -16,6 +16,7 @@ const Rubric = () => {
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
+    console.log('File upload triggered, file:', file?.name);
     if (!file) return;
 
     if (file.type !== 'application/pdf') {
