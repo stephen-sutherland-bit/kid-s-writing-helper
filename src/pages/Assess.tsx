@@ -184,97 +184,66 @@ const Assess = () => {
           </Button>
           <div>
             <h1 className="text-3xl font-bold text-foreground">New Assessment</h1>
-            <p className="text-muted-foreground">Type the student's writing or upload a photo</p>
+            <p className="text-muted-foreground">Photo → Crop → Extract → Grade</p>
           </div>
         </div>
 
-        <div className="grid lg:grid-cols-2 gap-6">
-          {/* PRIMARY: Manual Text Entry */}
-          <Card className="p-6 gentle-shadow">
-            <div className="flex items-center gap-2 mb-4">
-              <Type className="w-5 h-5 text-primary" />
-              <h2 className="text-xl font-semibold text-foreground">Enter Writing Sample</h2>
-            </div>
-            <p className="text-sm text-muted-foreground mb-4">
-              Type or paste the student's writing directly (most reliable method)
-            </p>
-            
-            <Textarea
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              placeholder="Type or paste the student's writing here..."
-              className="min-h-[350px] text-base rounded-xl resize-none"
-              disabled={isProcessing}
-            />
-            
-            {text.trim() && (
-              <div className="mt-4 flex gap-2">
-                <Button
-                  onClick={handleClearAll}
-                  variant="outline"
-                  className="rounded-xl"
-                >
-                  Clear All
-                </Button>
-              </div>
-            )}
-          </Card>
-
-          {/* SECONDARY: Image Reference + OCR Option */}
-          <div className="space-y-4">
-            <Card className="p-6 gentle-shadow">
-              <div className="flex items-center gap-2 mb-4">
-                <ImageIcon className="w-5 h-5 text-primary" />
-                <h2 className="text-xl font-semibold text-foreground">Reference Images</h2>
+        {/* Step 1: Upload Photo of Student Writing */}
+        {imagePreviews.length === 0 && (
+          <Card className="p-8 gentle-shadow">
+            <div className="text-center space-y-6">
+              <div className="flex justify-center">
+                <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Camera className="w-10 h-10 text-primary" />
+                </div>
               </div>
               
-              <Alert className="mb-4 bg-muted/30 border-primary/20">
-                <AlertCircle className="h-4 w-4 text-primary" />
-                <AlertDescription className="text-sm">
-                  Upload images as a reference while typing. OCR is available but works best for <strong>printed text only</strong>.
+              <div>
+                <h2 className="text-2xl font-bold text-foreground mb-2">Take a Photo of Student's Writing</h2>
+                <p className="text-muted-foreground">
+                  Photograph the child's handwritten work, then crop to select just the writing area
+                </p>
+              </div>
+
+              <Alert className="bg-primary/5 border-primary/20 text-left">
+                <AlertCircle className="h-5 w-5 text-primary" />
+                <AlertDescription className="text-sm space-y-2">
+                  <p className="font-semibold">Tips for best results:</p>
+                  <ul className="list-disc list-inside space-y-1 ml-2">
+                    <li>Use good lighting (natural light works best)</li>
+                    <li>Hold camera directly above the paper (avoid angles)</li>
+                    <li>Ensure handwriting is clearly visible</li>
+                    <li>Include only the child's writing in the photo</li>
+                  </ul>
                 </AlertDescription>
               </Alert>
 
-              {imagePreviews.length > 0 && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="mb-4 space-y-2 max-h-[300px] overflow-y-auto"
-                >
-                  {imagePreviews.map((preview, index) => (
-                    <div key={index} className="rounded-xl overflow-hidden border-2 border-border">
-                      <img src={preview} alt={`Reference ${index + 1}`} className="w-full h-auto object-contain" />
-                    </div>
-                  ))}
-                </motion.div>
-              )}
-
-              <div className="space-y-3">
+              <div className="space-y-3 max-w-md mx-auto">
                 <Button
                   onClick={() => cameraInputRef.current?.click()}
                   disabled={isProcessing}
-                  variant="outline"
-                  className="w-full h-12 border-2 rounded-xl"
+                  size="lg"
+                  className="w-full h-14 text-lg rounded-xl"
                 >
-                  <Camera className="w-5 h-5 mr-2" />
-                  Take Photo
+                  <Camera className="w-6 h-6 mr-2" />
+                  Take Photo Now
                 </Button>
 
                 <Button
                   onClick={() => fileInputRef.current?.click()}
                   disabled={isProcessing}
                   variant="outline"
-                  className="w-full h-12 border-2 rounded-xl"
+                  size="lg"
+                  className="w-full h-14 text-lg border-2 rounded-xl"
                 >
-                  <Upload className="w-5 h-5 mr-2" />
-                  Upload Images
+                  <Upload className="w-6 h-6 mr-2" />
+                  Upload from Gallery
                 </Button>
 
                 <input
                   ref={fileInputRef}
                   type="file"
                   accept="image/jpeg,image/jpg,image/png,image/webp"
-                  multiple
                   onChange={handleFileSelect}
                   className="hidden"
                 />
@@ -288,59 +257,118 @@ const Assess = () => {
                   className="hidden"
                 />
               </div>
+            </div>
+          </Card>
+        )}
+
+        {/* Step 2: Crop & Extract Text */}
+        {imagePreviews.length > 0 && !text.trim() && (
+          <div className="grid lg:grid-cols-2 gap-6">
+            <Card className="p-6 gentle-shadow">
+              <div className="flex items-center gap-2 mb-4">
+                <ImageIcon className="w-5 h-5 text-primary" />
+                <h2 className="text-xl font-semibold text-foreground">Student's Work</h2>
+              </div>
+              
+              <div className="space-y-4">
+                {imagePreviews.map((preview, index) => (
+                  <div key={index} className="rounded-xl overflow-hidden border-2 border-border">
+                    <img src={preview} alt={`Student work ${index + 1}`} className="w-full h-auto object-contain" />
+                  </div>
+                ))}
+              </div>
+
+              <Button
+                onClick={handleClearAll}
+                variant="outline"
+                className="w-full mt-4 rounded-xl"
+              >
+                Upload Different Photo
+              </Button>
             </Card>
 
-            {/* OCR Option */}
-            {imagePreviews.length > 0 && (
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
+            <Card className="p-6 gentle-shadow">
+              <div className="flex items-center gap-2 mb-4">
+                <Scissors className="w-5 h-5 text-primary" />
+                <h2 className="text-xl font-semibold text-foreground">Extract Child's Writing</h2>
+              </div>
+              
+              <p className="text-muted-foreground mb-6">
+                Crop the image to select only the child's handwritten text area, then extract the text for grading.
+              </p>
+
+              <Button
+                onClick={handleTryOCR}
+                disabled={isProcessing}
+                size="lg"
+                className="w-full h-14 text-lg rounded-xl"
               >
-                <Card className="p-6 gentle-shadow bg-muted/20">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Scissors className="w-5 h-5 text-muted-foreground" />
-                    <h3 className="font-semibold text-foreground">Try OCR (Experimental)</h3>
+                {isProcessing ? (
+                  <>
+                    <Loader2 className="w-6 h-6 mr-2 animate-spin" />
+                    Extracting Text...
+                  </>
+                ) : (
+                  <>
+                    <Scissors className="w-6 h-6 mr-2" />
+                    Crop & Extract Text
+                  </>
+                )}
+              </Button>
+
+              {isProcessing && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="mt-6 space-y-3"
+                >
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>{ocrProgress.status}</span>
                   </div>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    OCR works best for <strong>printed text</strong>. For handwritten samples, manual typing is strongly recommended.
-                  </p>
-                  <Button
-                    onClick={handleTryOCR}
-                    disabled={isProcessing}
-                    variant="secondary"
-                    className="w-full h-12 rounded-xl"
-                  >
-                    {isProcessing ? (
-                      <>
-                        <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                        Processing...
-                      </>
-                    ) : (
-                      <>
-                        <Scissors className="w-5 h-5 mr-2" />
-                        Crop & Run OCR
-                      </>
-                    )}
-                  </Button>
-                  
-                  {isProcessing && (
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      className="mt-4 space-y-2"
-                    >
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        <span>{ocrProgress.status}</span>
-                      </div>
-                      <Progress value={ocrProgress.progress * 100} className="h-2" />
-                    </motion.div>
-                  )}
-                </Card>
-              </motion.div>
-            )}
+                  <Progress value={ocrProgress.progress * 100} className="h-2" />
+                </motion.div>
+              )}
+            </Card>
           </div>
-        </div>
+        )}
+
+        {/* Step 3: Review & Score */}
+        {text.trim() && (
+          <div className="space-y-6">
+            <Card className="p-6 gentle-shadow">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <Type className="w-5 h-5 text-primary" />
+                  <h2 className="text-xl font-semibold text-foreground">Extracted Text</h2>
+                </div>
+                <Button
+                  onClick={handleClearAll}
+                  variant="outline"
+                  size="sm"
+                  className="rounded-xl"
+                >
+                  Start Over
+                </Button>
+              </div>
+              
+              <Alert className="mb-4 bg-primary/5 border-primary/20">
+                <AlertCircle className="h-4 w-4 text-primary" />
+                <AlertDescription className="text-sm">
+                  Review the extracted text below. You can edit it if needed before scoring.
+                </AlertDescription>
+              </Alert>
+
+              <Textarea
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                placeholder="Extracted text will appear here..."
+                className="min-h-[300px] text-base rounded-xl resize-none"
+                disabled={isProcessing}
+              />
+            </Card>
+          </div>
+        )}
 
         {/* Score Button */}
         {text.trim() && !isProcessing && (
