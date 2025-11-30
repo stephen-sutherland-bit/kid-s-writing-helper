@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Camera, Upload, Loader2, Sparkles, FileImage } from "lucide-react";
+import { ArrowLeft, Camera, Upload, Loader2, Sparkles, FileImage, Lightbulb } from "lucide-react";
 import { extractTextFromImage, validateImageFile, OcrProgress } from "@/lib/ocr";
 import { scoreWriting } from "@/lib/scoring";
 import { generateFeedback } from "@/lib/feedback";
@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Progress } from "@/components/ui/progress";
 import { motion } from "framer-motion";
 import { useDropzone } from "react-dropzone";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const Assess = () => {
   const navigate = useNavigate();
@@ -23,6 +24,7 @@ const Assess = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [ocrProgress, setOcrProgress] = useState<OcrProgress>({ status: "", progress: 0 });
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const [ocrConfidence, setOcrConfidence] = useState<number | null>(null);
 
   const handleImageUpload = async (files: File[]) => {
     if (files.length === 0) return;
@@ -45,6 +47,7 @@ const Assess = () => {
 
       setIsProcessing(true);
       const extractedTexts: string[] = [];
+      const confidences: number[] = [];
 
       // Process each image
       for (let i = 0; i < files.length; i++) {
@@ -53,10 +56,11 @@ const Assess = () => {
           progress: 0 
         });
 
-        const text = await extractTextFromImage(files[i], setOcrProgress);
+        const result = await extractTextFromImage(files[i], setOcrProgress);
         
-        if (text.trim()) {
-          extractedTexts.push(text);
+        if (result.text.trim()) {
+          extractedTexts.push(result.text);
+          confidences.push(result.confidence);
         }
       }
 
@@ -69,9 +73,13 @@ const Assess = () => {
       setOcrText(combinedText);
       storage.saveLastOcrText(combinedText);
 
+      // Calculate average confidence
+      const avgConfidence = Math.round(confidences.reduce((a, b) => a + b, 0) / confidences.length);
+      setOcrConfidence(avgConfidence);
+
       toast({
         title: `Text extracted from ${extractedTexts.length} image${extractedTexts.length > 1 ? 's' : ''}! ✓`,
-        description: "You can now edit the text or proceed to score the writing.",
+        description: `Confidence: ${avgConfidence}%. ${avgConfidence < 70 ? 'Please review and edit the text.' : 'You can now edit or score the writing.'}`,
       });
     } catch (error: any) {
       toast({
@@ -183,6 +191,15 @@ const Assess = () => {
           <Card className="p-6 gentle-shadow">
             <h2 className="text-xl font-semibold text-foreground mb-4">Upload Writing Sample</h2>
 
+            {/* Photo Quality Tips */}
+            <Alert className="mb-4 bg-muted/30 border-primary/20">
+              <Lightbulb className="h-4 w-4 text-primary" />
+              <AlertDescription className="text-sm">
+                <strong>Tips for best results:</strong> Use good lighting, hold camera steady and parallel to paper, 
+                ensure dark pen on white paper, and minimize shadows.
+              </AlertDescription>
+            </Alert>
+
             {imagePreviews.length > 0 && (
               <motion.div
                 initial={{ opacity: 0 }}
@@ -281,7 +298,21 @@ const Assess = () => {
 
           {/* Text Editor Section */}
           <Card className="p-6 gentle-shadow">
-            <h2 className="text-xl font-semibold text-foreground mb-4">Extracted Text</h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold text-foreground">Extracted Text</h2>
+              {ocrConfidence !== null && (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">Confidence:</span>
+                  <span className={`text-sm font-semibold ${
+                    ocrConfidence >= 80 ? 'text-green-600' : 
+                    ocrConfidence >= 60 ? 'text-yellow-600' : 
+                    'text-red-600'
+                  }`}>
+                    {ocrConfidence}%
+                  </span>
+                </div>
+              )}
+            </div>
             <Textarea
               value={ocrText}
               onChange={(e) => setOcrText(e.target.value)}
@@ -290,7 +321,9 @@ const Assess = () => {
               disabled={isProcessing}
             />
             <p className="text-xs text-muted-foreground mt-2">
-              You can edit the text before scoring if needed
+              {ocrConfidence && ocrConfidence < 70 
+                ? '⚠️ Low confidence detected. Please review and correct any errors before scoring.'
+                : 'You can edit the text before scoring if needed'}
             </p>
           </Card>
         </div>
