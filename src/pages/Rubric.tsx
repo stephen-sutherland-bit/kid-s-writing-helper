@@ -29,6 +29,7 @@ const Rubric = () => {
     }
 
     setUploading(true);
+    console.log('Starting upload process...');
 
     try {
       toast({
@@ -36,20 +37,28 @@ const Rubric = () => {
         description: "Extracting rubric categories and criteria from your PDF",
       });
 
-      // Parse the PDF to extract rubric structure
-      const { rubric, rawText } = await parsePdfRubric(file);
+      // Parse the PDF to extract rubric structure with timeout
+      const parsePromise = parsePdfRubric(file);
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('PDF parsing timed out after 30 seconds')), 30000)
+      );
+      
+      const { rubric, rawText } = await Promise.race([parsePromise, timeoutPromise]) as { rubric: any; rawText: string };
+      console.log('PDF parsed successfully, categories:', rubric.categories.length);
       
       // Add rawText for AI reference
       rubric.rawText = rawText;
       rubric.lastUpdated = new Date().toISOString();
 
       storage.saveRubric(rubric);
+      console.log('Rubric saved to storage');
 
       toast({
         title: "Rubric saved successfully! ✓",
         description: `${rubric.categories.length} categories loaded from PDF`,
       });
 
+      console.log('Navigating to home in 1.5s...');
       setTimeout(() => navigate("/"), 1500);
     } catch (error) {
       console.error('PDF parsing error:', error);
