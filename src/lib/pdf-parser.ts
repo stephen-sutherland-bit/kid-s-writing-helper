@@ -2,12 +2,8 @@
 import * as pdfjsLib from 'pdfjs-dist';
 import { Rubric, RubricCategory } from './storage';
 
-// Configure PDF.js worker with fallback
-try {
-  pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
-} catch (error) {
-  console.error('Failed to set PDF.js worker:', error);
-}
+// Configure PDF.js worker - using unpkg for better reliability
+pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.js`;
 
 export interface ParsedRubric {
   rubric: Rubric;
