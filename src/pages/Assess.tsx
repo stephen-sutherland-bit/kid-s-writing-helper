@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Camera, Upload, Loader2, Sparkles } from "lucide-react";
+import { ArrowLeft, Camera, Upload, Loader2, Sparkles, FileImage } from "lucide-react";
 import { extractTextFromImage, validateImageFile, OcrProgress } from "@/lib/ocr";
 import { scoreWriting } from "@/lib/scoring";
 import { generateFeedback } from "@/lib/feedback";
@@ -11,6 +11,7 @@ import { storage } from "@/lib/storage";
 import { useToast } from "@/hooks/use-toast";
 import { Progress } from "@/components/ui/progress";
 import { motion } from "framer-motion";
+import { useDropzone } from "react-dropzone";
 
 const Assess = () => {
   const navigate = useNavigate();
@@ -100,6 +101,31 @@ const Assess = () => {
     navigate(`/results/${assessment.id}`);
   };
 
+  // Dropzone configuration
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    accept: {
+      'image/jpeg': ['.jpg', '.jpeg'],
+      'image/png': ['.png'],
+      'image/webp': ['.webp']
+    },
+    maxFiles: 1,
+    maxSize: 10 * 1024 * 1024, // 10MB
+    disabled: isProcessing,
+    onDrop: (acceptedFiles) => {
+      if (acceptedFiles.length > 0) {
+        handleImageUpload(acceptedFiles[0]);
+      }
+    },
+    onDropRejected: (fileRejections) => {
+      const error = fileRejections[0]?.errors[0];
+      toast({
+        title: "File rejected",
+        description: error?.message || "Please upload a valid image file",
+        variant: "destructive",
+      });
+    }
+  });
+
   return (
     <div className="min-h-screen p-4 md:p-8">
       <div className="max-w-4xl mx-auto space-y-6">
@@ -133,6 +159,34 @@ const Assess = () => {
                 <img src={imagePreview} alt="Preview" className="w-full h-48 object-cover" />
               </motion.div>
             )}
+
+            {/* Drag and Drop Zone */}
+            <div
+              {...getRootProps()}
+              className={`
+                border-2 border-dashed rounded-xl p-8 mb-4 text-center cursor-pointer
+                transition-all duration-200
+                ${isDragActive 
+                  ? 'border-primary bg-primary/5 scale-[1.02]' 
+                  : 'border-border hover:border-primary/50 hover:bg-muted/30'
+                }
+                ${isProcessing ? 'opacity-50 cursor-not-allowed' : ''}
+              `}
+            >
+              <input {...getInputProps()} />
+              <motion.div
+                animate={isDragActive ? { scale: 1.1 } : { scale: 1 }}
+                transition={{ duration: 0.2 }}
+              >
+                <FileImage className={`w-12 h-12 mx-auto mb-3 ${isDragActive ? 'text-primary' : 'text-muted-foreground'}`} />
+              </motion.div>
+              <p className="font-medium text-foreground mb-1">
+                {isDragActive ? "Drop your image here!" : "Drag & drop an image here"}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                or use the buttons below
+              </p>
+            </div>
 
             <div className="space-y-4">
               <Button
