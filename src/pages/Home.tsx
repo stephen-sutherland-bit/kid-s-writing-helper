@@ -27,7 +27,7 @@ const Home = () => {
             <BookOpen className="w-16 h-16 mx-auto text-primary" />
           </motion.div>
           <h1 className="text-4xl md:text-5xl font-bold text-foreground">
-            e-asTTle Writing Helper
+            Elle's Personal Assistant
           </h1>
           <p className="text-lg text-muted-foreground max-w-md mx-auto">
             A warm, friendly tool to help assess student writing with the e-asTTle rubric
