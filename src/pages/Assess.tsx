@@ -1,9 +1,10 @@
 import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { useDropzone } from "react-dropzone";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Camera, Upload, Loader2, Sparkles, ImageIcon, Scissors, AlertCircle, Type } from "lucide-react";
+import { ArrowLeft, Camera, Upload, Loader2, Sparkles, ImageIcon, Scissors, AlertCircle, Type, X, Plus } from "lucide-react";
 import { extractTextFromImage, validateImageFile, OcrProgress } from "@/lib/ocr";
 import { scoreWriting } from "@/lib/scoring";
 import { generateFeedback } from "@/lib/feedback";
@@ -25,8 +26,22 @@ const Assess = () => {
   const [ocrProgress, setOcrProgress] = useState<OcrProgress>({ status: "", progress: 0 });
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [showCropModal, setShowCropModal] = useState(false);
-  const [currentImageToCrop, setCurrentImageToCrop] = useState<{ src: string; file: File } | null>(null);
+  const [currentImageToCrop, setCurrentImageToCrop] = useState<{ src: string; file: File; index: number } | null>(null);
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+  const [selectedPageIndex, setSelectedPageIndex] = useState<number>(0);
+  const [isProcessingAllPages, setIsProcessingAllPages] = useState(false);
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    accept: { 'image/*': ['.jpeg', '.jpg', '.png', '.webp'] },
+    multiple: true,
+    noClick: true,
+    onDrop: (acceptedFiles) => {
+      if (acceptedFiles.length > 0) {
+        setPendingFiles((prev) => [...prev, ...acceptedFiles]);
+        handleImageUploadForPreview(acceptedFiles);
+      }
+    }
+  });
 
   const handleImageUploadForPreview = async (files: File[]) => {
     if (files.length === 0) return;
@@ -45,11 +60,11 @@ const Assess = () => {
         });
         previews.push(preview);
       }
-      setImagePreviews(previews);
+      setImagePreviews((prev) => [...prev, ...previews]);
 
       toast({
-        title: "Images loaded ✓",
-        description: "Reference images displayed. Type the text or try OCR with cropping.",
+        title: `${files.length} ${files.length === 1 ? 'image' : 'images'} loaded ✓`,
+        description: files.length > 1 ? "Multi-page story ready. Select which page to extract." : "Ready to crop and extract text.",
       });
     } catch (error: any) {
       toast({
@@ -60,7 +75,7 @@ const Assess = () => {
     }
   };
 
-  const handleTryOCR = () => {
+  const handleTryOCR = (pageIndex: number) => {
     if (imagePreviews.length === 0) {
       toast({
         title: "No images loaded",
@@ -70,19 +85,62 @@ const Assess = () => {
       return;
     }
 
-    // For simplicity, use first image for cropping
-    // In production, you might want to let user choose which image to OCR
-    const reader = new FileReader();
-    reader.onload = () => {
-      setCurrentImageToCrop({ 
-        src: imagePreviews[0],
-        file: pendingFiles[0]
-      });
-      setShowCropModal(true);
-    };
+    setCurrentImageToCrop({ 
+      src: imagePreviews[pageIndex],
+      file: pendingFiles[pageIndex],
+      index: pageIndex
+    });
+    setShowCropModal(true);
+  };
+
+  const handleExtractAllPages = async () => {
+    if (imagePreviews.length === 0) return;
     
-    if (pendingFiles[0]) {
-      reader.readAsDataURL(pendingFiles[0]);
+    setIsProcessingAllPages(true);
+    let combinedText = "";
+    
+    try {
+      for (let i = 0; i < pendingFiles.length; i++) {
+        setOcrProgress({ 
+          status: `Processing page ${i + 1} of ${pendingFiles.length}...`, 
+          progress: i / pendingFiles.length 
+        });
+        
+        const result = await extractTextFromImage(pendingFiles[i], setOcrProgress);
+        
+        if (result.text.trim()) {
+          combinedText += `\n\n--- Page ${i + 1} ---\n\n${result.text}`;
+        }
+      }
+      
+      if (combinedText.trim()) {
+        setText(combinedText.trim());
+        storage.saveLastOcrText(combinedText.trim());
+        
+        toast({
+          title: `All ${pendingFiles.length} pages extracted! ✓`,
+          description: "Combined text ready. Review before scoring.",
+        });
+      } else {
+        throw new Error("No text detected in any pages.");
+      }
+    } catch (error: any) {
+      toast({
+        title: "Multi-page extraction failed",
+        description: error.message || "Please try cropping individual pages.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessingAllPages(false);
+      setOcrProgress({ status: "", progress: 0 });
+    }
+  };
+
+  const handleRemovePage = (index: number) => {
+    setImagePreviews((prev) => prev.filter((_, i) => i !== index));
+    setPendingFiles((prev) => prev.filter((_, i) => i !== index));
+    if (selectedPageIndex >= index && selectedPageIndex > 0) {
+      setSelectedPageIndex(selectedPageIndex - 1);
     }
   };
 
@@ -123,7 +181,7 @@ const Assess = () => {
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
     if (files.length > 0) {
-      setPendingFiles(files);
+      setPendingFiles((prev) => [...prev, ...files]);
       handleImageUploadForPreview(files);
     }
   };
@@ -167,6 +225,7 @@ const Assess = () => {
     setText("");
     setImagePreviews([]);
     setPendingFiles([]);
+    setSelectedPageIndex(0);
   };
 
   return (
@@ -191,7 +250,12 @@ const Assess = () => {
         {/* Step 1: Upload Photo of Student Writing */}
         {imagePreviews.length === 0 && (
           <Card className="p-8 gentle-shadow">
-            <div className="text-center space-y-6">
+            <div 
+              {...getRootProps()} 
+              className={`text-center space-y-6 rounded-2xl border-2 border-dashed transition-colors p-8 ${
+                isDragActive ? 'border-primary bg-primary/5' : 'border-border'
+              }`}
+            >
               <div className="flex justify-center">
                 <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center">
                   <Camera className="w-10 h-10 text-primary" />
@@ -199,9 +263,11 @@ const Assess = () => {
               </div>
               
               <div>
-                <h2 className="text-2xl font-bold text-foreground mb-2">Take a Photo of Student's Writing</h2>
+                <h2 className="text-2xl font-bold text-foreground mb-2">
+                  {isDragActive ? 'Drop pages here!' : 'Take Photos of Student\'s Writing'}
+                </h2>
                 <p className="text-muted-foreground">
-                  Photograph the child's handwritten work, then crop to select just the writing area
+                  Drag & drop multiple pages, or use the buttons below
                 </p>
               </div>
 
@@ -213,7 +279,7 @@ const Assess = () => {
                     <li>Use good lighting (natural light works best)</li>
                     <li>Hold camera directly above the paper (avoid angles)</li>
                     <li>Ensure handwriting is clearly visible</li>
-                    <li>Include only the child's writing in the photo</li>
+                    <li>Upload multiple pages for longer stories</li>
                   </ul>
                 </AlertDescription>
               </Alert>
@@ -241,10 +307,12 @@ const Assess = () => {
                 </Button>
 
                 <input
+                  {...getInputProps()}
                   ref={fileInputRef}
                   type="file"
                   accept="image/jpeg,image/jpg,image/png,image/webp"
                   onChange={handleFileSelect}
+                  multiple
                   className="hidden"
                 />
 
@@ -254,6 +322,7 @@ const Assess = () => {
                   accept="image/*"
                   capture="environment"
                   onChange={handleFileSelect}
+                  multiple
                   className="hidden"
                 />
               </div>
@@ -265,15 +334,51 @@ const Assess = () => {
         {imagePreviews.length > 0 && !text.trim() && (
           <div className="grid lg:grid-cols-2 gap-6">
             <Card className="p-6 gentle-shadow">
-              <div className="flex items-center gap-2 mb-4">
-                <ImageIcon className="w-5 h-5 text-primary" />
-                <h2 className="text-xl font-semibold text-foreground">Student's Work</h2>
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <ImageIcon className="w-5 h-5 text-primary" />
+                  <h2 className="text-xl font-semibold text-foreground">
+                    Student's Work ({imagePreviews.length} {imagePreviews.length === 1 ? 'page' : 'pages'})
+                  </h2>
+                </div>
+                <Button
+                  onClick={() => fileInputRef.current?.click()}
+                  variant="outline"
+                  size="sm"
+                  className="rounded-xl"
+                >
+                  <Plus className="w-4 h-4 mr-1" />
+                  Add Pages
+                </Button>
               </div>
               
-              <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
                 {imagePreviews.map((preview, index) => (
-                  <div key={index} className="rounded-xl overflow-hidden border-2 border-border">
-                    <img src={preview} alt={`Student work ${index + 1}`} className="w-full h-auto object-contain" />
+                  <div key={index} className="relative group">
+                    <div 
+                      className={`rounded-xl overflow-hidden border-2 cursor-pointer transition-all ${
+                        selectedPageIndex === index 
+                          ? 'border-primary ring-2 ring-primary/20' 
+                          : 'border-border hover:border-primary/50'
+                      }`}
+                      onClick={() => setSelectedPageIndex(index)}
+                    >
+                      <img src={preview} alt={`Page ${index + 1}`} className="w-full h-auto object-contain" />
+                      <div className="absolute top-2 left-2 bg-background/90 backdrop-blur-sm text-xs font-semibold px-2 py-1 rounded-lg">
+                        Page {index + 1}
+                      </div>
+                    </div>
+                    <Button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleRemovePage(index);
+                      }}
+                      variant="destructive"
+                      size="icon"
+                      className="absolute -top-2 -right-2 w-7 h-7 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
                   </div>
                 ))}
               </div>
@@ -283,18 +388,20 @@ const Assess = () => {
                 variant="outline"
                 className="w-full mt-4 rounded-xl"
               >
-                Upload Different Photo
+                Clear All Pages
               </Button>
             </Card>
 
             <Card className="p-6 gentle-shadow">
               <div className="flex items-center gap-2 mb-4">
                 <Scissors className="w-5 h-5 text-primary" />
-                <h2 className="text-xl font-semibold text-foreground">Extract Child's Writing</h2>
+                <h2 className="text-xl font-semibold text-foreground">Extract Text</h2>
               </div>
               
               <p className="text-muted-foreground mb-4">
-                Crop the image to select only the child's handwritten text area, then extract the text for grading.
+                {imagePreviews.length > 1 
+                  ? "Extract text from one page or all pages at once."
+                  : "Crop the image to select only the handwritten text area."}
               </p>
 
               <Alert className="mb-6 bg-primary/5 border-primary/20">
@@ -304,26 +411,52 @@ const Assess = () => {
                 </AlertDescription>
               </Alert>
 
-              <Button
-                onClick={handleTryOCR}
-                disabled={isProcessing}
-                size="lg"
-                className="w-full h-14 text-lg rounded-xl"
-              >
-                {isProcessing ? (
-                  <>
-                    <Loader2 className="w-6 h-6 mr-2 animate-spin" />
-                    Extracting Text...
-                  </>
-                ) : (
-                  <>
-                    <Scissors className="w-6 h-6 mr-2" />
-                    Crop & Extract Text
-                  </>
+              <div className="space-y-3">
+                {imagePreviews.length > 1 && (
+                  <Button
+                    onClick={handleExtractAllPages}
+                    disabled={isProcessing || isProcessingAllPages}
+                    size="lg"
+                    className="w-full h-14 text-lg rounded-xl bg-gradient-to-r from-primary to-secondary"
+                  >
+                    {isProcessingAllPages ? (
+                      <>
+                        <Loader2 className="w-6 h-6 mr-2 animate-spin" />
+                        Processing All Pages...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-6 h-6 mr-2" />
+                        Extract All {imagePreviews.length} Pages
+                      </>
+                    )}
+                  </Button>
                 )}
-              </Button>
 
-              {isProcessing && (
+                <Button
+                  onClick={() => handleTryOCR(selectedPageIndex)}
+                  disabled={isProcessing || isProcessingAllPages}
+                  variant={imagePreviews.length > 1 ? "outline" : "default"}
+                  size="lg"
+                  className="w-full h-14 text-lg rounded-xl"
+                >
+                  {isProcessing ? (
+                    <>
+                      <Loader2 className="w-6 h-6 mr-2 animate-spin" />
+                      Extracting Text...
+                    </>
+                  ) : (
+                    <>
+                      <Scissors className="w-6 h-6 mr-2" />
+                      {imagePreviews.length > 1 
+                        ? `Crop & Extract Page ${selectedPageIndex + 1}`
+                        : 'Crop & Extract Text'}
+                    </>
+                  )}
+                </Button>
+              </div>
+
+              {(isProcessing || isProcessingAllPages) && (
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
