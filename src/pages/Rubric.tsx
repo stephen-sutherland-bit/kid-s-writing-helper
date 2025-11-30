@@ -2,10 +2,11 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { ArrowLeft, Upload, CheckCircle2, AlertCircle } from "lucide-react";
+import { ArrowLeft, Upload, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
 import { storage, DEFAULT_RUBRIC } from "@/lib/storage";
 import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
+import { parsePdfRubric } from "@/lib/pdf-parser";
 
 const Rubric = () => {
   const navigate = useNavigate();
@@ -29,30 +30,31 @@ const Rubric = () => {
     setUploading(true);
 
     try {
-      // For now, use the default rubric structure
-      // In a real implementation, you would parse the PDF here using pdf.js
       toast({
-        title: "PDF Upload",
-        description: "PDF parsing is simplified in this demo. Using enhanced default rubric structure.",
+        title: "Parsing PDF...",
+        description: "Extracting rubric categories and criteria from your PDF",
       });
 
-      const rubric = {
-        ...DEFAULT_RUBRIC,
-        lastUpdated: new Date().toISOString()
-      };
+      // Parse the PDF to extract rubric structure
+      const { rubric, rawText } = await parsePdfRubric(file);
+      
+      // Add rawText for AI reference
+      rubric.rawText = rawText;
+      rubric.lastUpdated = new Date().toISOString();
 
       storage.saveRubric(rubric);
 
       toast({
         title: "Rubric saved successfully! ✓",
-        description: `${rubric.categories.length} categories loaded`,
+        description: `${rubric.categories.length} categories loaded from PDF`,
       });
 
       setTimeout(() => navigate("/"), 1500);
     } catch (error) {
+      console.error('PDF parsing error:', error);
       toast({
         title: "Upload failed",
-        description: "There was an error processing your rubric. Please try again.",
+        description: error instanceof Error ? error.message : "There was an error processing your rubric. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -182,10 +184,10 @@ const Rubric = () => {
             <div className="bg-muted/30 p-4 rounded-xl flex items-start gap-3">
               <AlertCircle className="w-5 h-5 text-primary shrink-0 mt-0.5" />
               <div className="text-sm space-y-1">
-                <p className="font-medium text-foreground">Note on PDF Parsing</p>
+                <p className="font-medium text-foreground">AI-Powered Assessment</p>
                 <p className="text-muted-foreground">
-                  This demo uses a default rubric structure. Full PDF parsing would extract categories, 
-                  levels, and descriptors from your uploaded rubric using pdf.js.
+                  Upload your e-asTTle rubric PDF and the app will extract categories and use AI to score 
+                  student writing against the actual criteria in your rubric.
                 </p>
               </div>
             </div>

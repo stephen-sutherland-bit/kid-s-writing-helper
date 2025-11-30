@@ -1,5 +1,4 @@
-// Handwriting OCR using Hugging Face TrOCR model
-import { pipeline, Pipeline } from '@huggingface/transformers';
+// Handwriting OCR using Lovable AI with Gemini Vision
 
 export interface OcrProgress {
   status: string;
@@ -11,105 +10,83 @@ export interface OcrResult {
   confidence: number;
 }
 
-let ocrPipeline: Pipeline | null = null;
-let isLoading = false;
-let loadingPromise: Promise<Pipeline> | null = null;
-
 /**
- * Initialize the TrOCR pipeline for handwriting recognition
- * The model is downloaded once (~150MB) and cached locally
+ * Convert File to base64 string
  */
-async function initializePipeline(
-  onProgress?: (progress: OcrProgress) => void
-): Promise<Pipeline> {
-  // If already initialized, return it
-  if (ocrPipeline) {
-    return ocrPipeline;
-  }
-
-  // If currently loading, wait for that to complete
-  if (isLoading && loadingPromise) {
-    return loadingPromise;
-  }
-
-  // Start loading
-  isLoading = true;
-  loadingPromise = (async () => {
-    try {
-      if (onProgress) {
-        onProgress({ status: 'Downloading AI model (one-time, ~150MB)...', progress: 0 });
-      }
-
-      const pipe = await pipeline(
-        'image-to-text',
-        'Xenova/trocr-base-handwritten',
-        {
-          progress_callback: (data: any) => {
-            if (onProgress && data.progress !== undefined) {
-              const progressPercent = Math.round(data.progress);
-              onProgress({
-                status: data.status === 'progress' 
-                  ? `Downloading AI model... ${progressPercent}%`
-                  : data.status || 'Loading...',
-                progress: data.progress || 0
-              });
-            }
-          }
-        }
-      );
-
-      ocrPipeline = pipe;
-      isLoading = false;
-      
-      if (onProgress) {
-        onProgress({ status: 'Model ready!', progress: 100 });
-      }
-
-      return pipe;
-    } catch (error) {
-      isLoading = false;
-      loadingPromise = null;
-      throw error;
-    }
-  })();
-
-  return loadingPromise;
+async function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const base64 = (reader.result as string).split(',')[1];
+      resolve(base64);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
 }
 
 /**
- * Extract text from image using TrOCR (trained on handwriting)
+ * Extract text from image using AI-powered OCR
+ * Uses Lovable AI with Gemini Vision for accurate handwriting recognition
  */
 export async function extractTextFromImage(
   imageFile: File,
   onProgress?: (progress: OcrProgress) => void
 ): Promise<OcrResult> {
   try {
-    // Initialize the pipeline (or use cached one)
-    const pipe = await initializePipeline(onProgress);
-
     if (onProgress) {
-      onProgress({ status: 'Extracting text from handwriting...', progress: 90 });
+      onProgress({ status: 'Preparing image...', progress: 10 });
     }
 
-    // Convert file to blob for processing
-    const imageBlob = new Blob([imageFile], { type: imageFile.type });
-
-    // Extract text
-    const result = await pipe(imageBlob) as any;
+    // Convert image to base64
+    const imageBase64 = await fileToBase64(imageFile);
     
     if (onProgress) {
-      onProgress({ status: 'Complete!', progress: 100 });
+      onProgress({ status: 'Analyzing handwriting with AI...', progress: 30 });
     }
 
-    // TrOCR returns array with generated_text
-    const text = result?.[0]?.generated_text || '';
+    // Call edge function for AI extraction
+    const response = await fetch(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/extract-handwriting`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
+        body: JSON.stringify({ imageBase64 }),
+      }
+    );
+
+    if (!response.ok) {
+      const error = await response.json();
+      
+      if (response.status === 429) {
+        throw new Error('Rate limit exceeded. Please wait a moment and try again.');
+      }
+      
+      if (response.status === 402) {
+        throw new Error('AI credits depleted. Please add credits to continue.');
+      }
+      
+      throw new Error(error.error || 'Failed to extract text from image');
+    }
+
+    const result = await response.json();
     
+    if (onProgress) {
+      onProgress({ status: 'Text extracted successfully!', progress: 100 });
+    }
+
     return {
-      text,
-      confidence: 85 // TrOCR doesn't provide confidence scores, so we use a default high value
+      text: result.text,
+      confidence: result.confidence || 95
     };
   } catch (error) {
-    console.error('TrOCR Error:', error);
+    console.error('OCR Error:', error);
+    if (error instanceof Error) {
+      throw error;
+    }
     throw new Error('Failed to extract text from handwriting. Please try again or ensure the image is clear.');
   }
 }
@@ -127,12 +104,4 @@ export function validateImageFile(file: File): boolean {
   }
 
   return true;
-}
-
-/**
- * Check if the model is already cached locally
- */
-export function isModelCached(): boolean {
-  // This is a simple check - in reality, the transformers library handles caching
-  return ocrPipeline !== null;
 }

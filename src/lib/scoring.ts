@@ -1,4 +1,5 @@
-// Rule-based scoring engine for e-asTTle writing assessment
+// Scoring engine for e-asTTle writing assessment with AI support
+import { Rubric } from './storage';
 
 interface TextAnalysis {
   sentenceCount: number;
@@ -144,4 +145,69 @@ export function getLevelFromScore(score: number): string {
   // Map 0-8 scores to e-asTTle levels
   const levels = ["1B", "1P", "1A", "2B", "2P", "2A", "3B", "3P", "3A"];
   return levels[Math.min(score, 8)];
+}
+
+export interface AIScoringResult {
+  scores: Record<string, number>;
+  justifications: Record<string, string>;
+}
+
+/**
+ * Score writing using AI against the actual rubric
+ * This replaces rule-based heuristics with rubric-aware AI assessment
+ */
+export async function scoreWritingWithAI(
+  text: string,
+  rubric: Rubric
+): Promise<AIScoringResult> {
+  try {
+    const response = await fetch(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/score-writing`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
+        body: JSON.stringify({ text, rubric }),
+      }
+    );
+
+    if (!response.ok) {
+      const error = await response.json();
+      
+      if (response.status === 429) {
+        throw new Error('Rate limit exceeded. Please wait a moment and try again.');
+      }
+      
+      if (response.status === 402) {
+        throw new Error('AI credits depleted. Please add credits to continue.');
+      }
+      
+      throw new Error(error.error || 'Failed to score writing');
+    }
+
+    const result = await response.json();
+    
+    return {
+      scores: result.scores,
+      justifications: result.justifications
+    };
+  } catch (error) {
+    console.error('AI Scoring Error:', error);
+    
+    // Fallback to rule-based scoring if AI fails
+    if (error instanceof Error) {
+      console.warn('Falling back to rule-based scoring:', error.message);
+    }
+    
+    const fallbackScores = scoreWriting(text);
+    return {
+      scores: fallbackScores,
+      justifications: Object.keys(fallbackScores).reduce((acc, key) => {
+        acc[key] = 'Assessed using automated heuristics';
+        return acc;
+      }, {} as Record<string, string>)
+    };
+  }
 }
