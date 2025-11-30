@@ -108,21 +108,39 @@ const Assess = () => {
       'image/png': ['.png'],
       'image/webp': ['.webp']
     },
-    maxFiles: 1,
+    multiple: false,
     maxSize: 10 * 1024 * 1024, // 10MB
     disabled: isProcessing,
-    onDrop: (acceptedFiles) => {
+    onDrop: (acceptedFiles, fileRejections) => {
+      // If multiple files dropped, take the first one
       if (acceptedFiles.length > 0) {
+        if (acceptedFiles.length > 1) {
+          toast({
+            title: "Multiple files detected",
+            description: "Using the first image only. Please drop one image at a time.",
+          });
+        }
         handleImageUpload(acceptedFiles[0]);
+      } else if (fileRejections.length > 0) {
+        const rejection = fileRejections[0];
+        const error = rejection.errors[0];
+        
+        let errorMessage = "Please upload a valid image file";
+        
+        if (error.code === 'file-too-large') {
+          errorMessage = "Image is too large. Please use an image under 10MB.";
+        } else if (error.code === 'file-invalid-type') {
+          errorMessage = "Invalid file type. Please use JPEG, PNG, or WebP images.";
+        } else if (error.code === 'too-many-files') {
+          errorMessage = "Please drop only one image at a time.";
+        }
+        
+        toast({
+          title: "File rejected",
+          description: errorMessage,
+          variant: "destructive",
+        });
       }
-    },
-    onDropRejected: (fileRejections) => {
-      const error = fileRejections[0]?.errors[0];
-      toast({
-        title: "File rejected",
-        description: error?.message || "Please upload a valid image file",
-        variant: "destructive",
-      });
     }
   });
 
@@ -184,7 +202,7 @@ const Assess = () => {
                 {isDragActive ? "Drop your image here!" : "Drag & drop an image here"}
               </p>
               <p className="text-sm text-muted-foreground">
-                or use the buttons below
+                {isDragActive ? "Release to upload" : "or use the buttons below • One image at a time"}
               </p>
             </div>
 
