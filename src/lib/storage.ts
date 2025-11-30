@@ -17,11 +17,17 @@ export interface Assessment {
   text: string;
   scores: Record<string, number>;
   feedback: {
+    student: string;
+    teacher: string;
+    parent: string;
+    formal: string;
+  } | {
     simple: string;
     report: string;
     advanced: string;
-  };
+  }; // Support both new and old formats for backward compatibility
   timestamp: string;
+  justifications?: Record<string, string>; // AI justifications for each score
 }
 
 const RUBRIC_KEY = 'easttleRubric';

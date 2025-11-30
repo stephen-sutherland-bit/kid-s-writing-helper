@@ -4,16 +4,13 @@ import { useDropzone } from "react-dropzone";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Camera, Upload, Loader2, Sparkles, ImageIcon, Scissors, AlertCircle, Type, X, Plus } from "lucide-react";
-import { extractTextFromImage, validateImageFile, OcrProgress } from "@/lib/ocr";
-import { scoreWritingWithAI } from "@/lib/scoring";
-import { generateFeedback } from "@/lib/feedback";
+import { ArrowLeft, Camera, Upload, Loader2, Sparkles, ImageIcon, X, Plus, AlertCircle } from "lucide-react";
+import { validateImageFile } from "@/lib/ocr";
+import { assessWritingWithOpenAI } from "@/lib/scoring";
 import { storage } from "@/lib/storage";
 import { useToast } from "@/hooks/use-toast";
-import { Progress } from "@/components/ui/progress";
 import { motion, AnimatePresence } from "framer-motion";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { ImageCropModal } from "@/components/ImageCropModal";
 
 const Assess = () => {
   const navigate = useNavigate();
@@ -22,15 +19,10 @@ const Assess = () => {
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const addPagesInputRef = useRef<HTMLInputElement>(null);
 
-  const [text, setText] = useState("");
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [ocrProgress, setOcrProgress] = useState<OcrProgress>({ status: "", progress: 0 });
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
-  const [showCropModal, setShowCropModal] = useState(false);
-  const [currentImageToCrop, setCurrentImageToCrop] = useState<{ src: string; file: File; index: number } | null>(null);
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
-  const [selectedPageIndex, setSelectedPageIndex] = useState<number>(0);
-  const [isProcessingAllPages, setIsProcessingAllPages] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [extractedText, setExtractedText] = useState("");
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
@@ -53,7 +45,7 @@ const Assess = () => {
       // Validate all files first
       files.forEach(validateImageFile);
 
-      // Show all previews as reference images
+      // Show all previews
       const previews: string[] = [];
       for (const file of files) {
         const reader = new FileReader();
@@ -66,8 +58,8 @@ const Assess = () => {
       setImagePreviews((prev) => [...prev, ...previews]);
 
       toast({
-        title: `${files.length} ${files.length === 1 ? 'image' : 'images'} loaded ✓`,
-        description: files.length > 1 ? "Multi-page story ready. Select which page to extract." : "Ready to crop and extract text.",
+        title: `${files.length} ${files.length === 1 ? 'image' : 'images'} uploaded ✓`,
+        description: "Ready to assess when you're ready!",
       });
     } catch (error: any) {
       toast({
@@ -78,73 +70,9 @@ const Assess = () => {
     }
   };
 
-  const handleTryOCR = (pageIndex: number) => {
-    if (imagePreviews.length === 0) {
-      toast({
-        title: "No images loaded",
-        description: "Please upload images first.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setCurrentImageToCrop({ 
-      src: imagePreviews[pageIndex],
-      file: pendingFiles[pageIndex],
-      index: pageIndex
-    });
-    setShowCropModal(true);
-  };
-
-  const handleExtractAllPages = async () => {
-    if (imagePreviews.length === 0) return;
-    
-    setIsProcessingAllPages(true);
-    let combinedText = "";
-    
-    try {
-      for (let i = 0; i < pendingFiles.length; i++) {
-        setOcrProgress({ 
-          status: `Processing page ${i + 1} of ${pendingFiles.length}...`, 
-          progress: i / pendingFiles.length 
-        });
-        
-        const result = await extractTextFromImage(pendingFiles[i], setOcrProgress);
-        
-        if (result.text.trim()) {
-          combinedText += `\n\n--- Page ${i + 1} ---\n\n${result.text}`;
-        }
-      }
-      
-      if (combinedText.trim()) {
-        setText(combinedText.trim());
-        storage.saveLastOcrText(combinedText.trim());
-        
-        toast({
-          title: `All ${pendingFiles.length} pages extracted! ✓`,
-          description: "Combined text ready. Review before scoring.",
-        });
-      } else {
-        throw new Error("No text detected in any pages.");
-      }
-    } catch (error: any) {
-      toast({
-        title: "Multi-page extraction failed",
-        description: error.message || "Please try cropping individual pages.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsProcessingAllPages(false);
-      setOcrProgress({ status: "", progress: 0 });
-    }
-  };
-
   const handleRemovePage = (index: number) => {
     setImagePreviews((prev) => prev.filter((_, i) => i !== index));
     setPendingFiles((prev) => prev.filter((_, i) => i !== index));
-    if (selectedPageIndex >= index && selectedPageIndex > 0) {
-      setSelectedPageIndex(selectedPageIndex - 1);
-    }
   };
 
   const handleDragStart = (index: number) => {
@@ -181,15 +109,6 @@ const Assess = () => {
     setImagePreviews(newPreviews);
     setPendingFiles(newFiles);
     
-    // Adjust selected page index if needed
-    if (selectedPageIndex === draggedIndex) {
-      setSelectedPageIndex(dropIndex);
-    } else if (draggedIndex < selectedPageIndex && dropIndex >= selectedPageIndex) {
-      setSelectedPageIndex(selectedPageIndex - 1);
-    } else if (draggedIndex > selectedPageIndex && dropIndex <= selectedPageIndex) {
-      setSelectedPageIndex(selectedPageIndex + 1);
-    }
-    
     setDraggedIndex(null);
     setDragOverIndex(null);
   };
@@ -197,40 +116,6 @@ const Assess = () => {
   const handleDragEnd = () => {
     setDraggedIndex(null);
     setDragOverIndex(null);
-  };
-
-  const handleCropComplete = async (croppedBlob: Blob) => {
-    setShowCropModal(false);
-    setIsProcessing(true);
-
-    try {
-      // Convert blob to file
-      const croppedFile = new File([croppedBlob], "cropped-image.jpg", { type: "image/jpeg" });
-      
-      setOcrProgress({ status: "Processing cropped image...", progress: 0 });
-      const result = await extractTextFromImage(croppedFile, setOcrProgress);
-      
-      if (result.text.trim()) {
-        setText(result.text);
-        storage.saveLastOcrText(result.text);
-
-        toast({
-          title: `Text extracted! ✓`,
-          description: `Handwriting recognized. Please review and edit as needed before scoring.`,
-        });
-      } else {
-        throw new Error("No text detected. Please try a clearer photo or crop just the handwriting area.");
-      }
-    } catch (error: any) {
-      toast({
-        title: "Text extraction failed",
-        description: error.message || "Please try a clearer photo or crop just the handwriting area.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsProcessing(false);
-      setOcrProgress({ status: "", progress: 0 });
-    }
   };
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -241,11 +126,11 @@ const Assess = () => {
     }
   };
 
-  const handleScoreWriting = async () => {
-    if (!text.trim()) {
+  const handleAssessWriting = async () => {
+    if (imagePreviews.length === 0) {
       toast({
-        title: "No text to score",
-        description: "Please extract text from an image first",
+        title: "No images to assess",
+        description: "Please upload photos of student writing first",
         variant: "destructive",
       });
       return;
@@ -265,45 +150,46 @@ const Assess = () => {
 
     try {
       toast({
-        title: "Analyzing writing...",
-        description: "Using AI to score against your rubric criteria",
+        title: "Analyzing writing with AI...",
+        description: "This may take a moment as the AI reads the handwriting and assesses against your rubric",
       });
 
-      // Score using AI against the actual rubric
-      const { scores, justifications } = await scoreWritingWithAI(text, rubric);
+      // Call the unified assessment API with all images
+      const result = await assessWritingWithOpenAI(imagePreviews, rubric);
 
-      // Generate all feedback modes with AI justifications
-      const simpleFeedback = generateFeedback(scores, text, 'simple', justifications);
-      const reportFeedback = generateFeedback(scores, text, 'report', justifications);
-      const advancedFeedback = generateFeedback(scores, text, 'advanced', justifications);
+      // Store extracted text for display
+      setExtractedText(result.extractedText);
 
-      // Save assessment
+      // Calculate total scores
+      const totalScore = Object.values(result.scores).reduce((a, b) => a + b, 0);
+      const averageScore = totalScore / Object.keys(result.scores).length;
+
+      // Save assessment with new 4-mode feedback structure
       const assessment = {
         id: Date.now().toString(),
-        text,
-        scores,
-        feedback: {
-          simple: simpleFeedback,
-          report: reportFeedback,
-          advanced: advancedFeedback,
-        },
+        text: result.extractedText,
+        scores: result.scores,
+        feedback: result.feedback,
+        justifications: result.justifications,
         timestamp: new Date().toISOString(),
+        totalScore,
+        averageScore,
       };
 
       storage.saveAssessment(assessment);
 
       toast({
         title: "Assessment complete! ✓",
-        description: "Writing has been scored using AI against your rubric",
+        description: "Writing has been scored using OpenAI GPT-4o against your rubric",
       });
 
       // Navigate to results
       setTimeout(() => navigate(`/results/${assessment.id}`), 800);
     } catch (error) {
-      console.error('Scoring error:', error);
+      console.error('Assessment error:', error);
       toast({
-        title: "Scoring failed",
-        description: error instanceof Error ? error.message : "There was an error scoring the writing. Please try again.",
+        title: "Assessment failed",
+        description: error instanceof Error ? error.message : "There was an error assessing the writing. Please check your OpenAI API key and try again.",
         variant: "destructive",
       });
     } finally {
@@ -312,10 +198,9 @@ const Assess = () => {
   };
 
   const handleClearAll = () => {
-    setText("");
     setImagePreviews([]);
     setPendingFiles([]);
-    setSelectedPageIndex(0);
+    setExtractedText("");
   };
 
   return (
@@ -333,11 +218,11 @@ const Assess = () => {
           </Button>
           <div>
             <h1 className="text-3xl font-bold text-foreground">New Assessment</h1>
-            <p className="text-muted-foreground">Photo → Crop → Extract → Grade</p>
+            <p className="text-muted-foreground">Upload Photos → AI Assesses Everything</p>
           </div>
         </div>
 
-        {/* Step 1: Upload Photo of Student Writing */}
+        {/* Upload Photos Section */}
         {imagePreviews.length === 0 && (
           <Card className="p-8 gentle-shadow">
             <div 
@@ -354,7 +239,7 @@ const Assess = () => {
               
               <div>
                 <h2 className="text-2xl font-bold text-foreground mb-2">
-                  {isDragActive ? 'Drop pages here!' : 'Take Photos of Student\'s Writing'}
+                  {isDragActive ? 'Drop pages here!' : 'Upload Student\'s Writing'}
                 </h2>
                 <p className="text-muted-foreground">
                   Drag & drop multiple pages, or use the buttons below
@@ -419,26 +304,36 @@ const Assess = () => {
           </Card>
         )}
 
-        {/* Step 2: Crop & Extract Text */}
-        {imagePreviews.length > 0 && !text.trim() && (
-          <div className="grid lg:grid-cols-2 gap-6">
+        {/* Review & Assess Section */}
+        {imagePreviews.length > 0 && (
+          <div className="space-y-6">
             <Card className="p-6 gentle-shadow">
-              <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
                   <ImageIcon className="w-5 h-5 text-primary" />
                   <h2 className="text-xl font-semibold text-foreground">
                     Student's Work ({imagePreviews.length} {imagePreviews.length === 1 ? 'page' : 'pages'})
                   </h2>
                 </div>
-                <Button
-                  onClick={() => addPagesInputRef.current?.click()}
-                  variant="outline"
-                  size="sm"
-                  className="rounded-xl"
-                >
-                  <Plus className="w-4 h-4 mr-1" />
-                  Add Pages
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    onClick={() => addPagesInputRef.current?.click()}
+                    variant="outline"
+                    size="sm"
+                    className="rounded-xl"
+                  >
+                    <Plus className="w-4 h-4 mr-1" />
+                    Add Pages
+                  </Button>
+                  <Button
+                    onClick={handleClearAll}
+                    variant="outline"
+                    size="sm"
+                    className="rounded-xl"
+                  >
+                    Clear All
+                  </Button>
+                </div>
               </div>
               
               {imagePreviews.length > 1 && (
@@ -456,7 +351,7 @@ const Assess = () => {
                 className="hidden"
               />
               
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                 {imagePreviews.map((preview, index) => (
                   <div 
                     key={index} 
@@ -473,11 +368,8 @@ const Assess = () => {
                           ? 'opacity-50 scale-95' 
                           : dragOverIndex === index 
                           ? 'border-primary ring-2 ring-primary/40 scale-105' 
-                          : selectedPageIndex === index 
-                          ? 'border-primary ring-2 ring-primary/20' 
                           : 'border-border hover:border-primary/50'
                       }`}
-                      onClick={() => setSelectedPageIndex(index)}
                     >
                       <img 
                         src={preview} 
@@ -489,174 +381,77 @@ const Assess = () => {
                       </div>
                     </div>
                     <Button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleRemovePage(index);
-                      }}
+                      onClick={() => handleRemovePage(index)}
                       variant="destructive"
                       size="icon"
-                      className="absolute -top-2 -right-2 w-7 h-7 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="absolute -top-2 -right-2 h-7 w-7 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
                     >
                       <X className="w-4 h-4" />
                     </Button>
                   </div>
                 ))}
               </div>
-
-              <Button
-                onClick={handleClearAll}
-                variant="outline"
-                className="w-full mt-4 rounded-xl"
-              >
-                Clear All Pages
-              </Button>
             </Card>
 
-            <Card className="p-6 gentle-shadow">
-              <div className="flex items-center gap-2 mb-4">
-                <Scissors className="w-5 h-5 text-primary" />
-                <h2 className="text-xl font-semibold text-foreground">Extract Text</h2>
-              </div>
-              
-              <p className="text-muted-foreground mb-4">
-                {imagePreviews.length > 1 
-                  ? "Extract text from one page or all pages at once."
-                  : "Crop the image to select only the handwritten text area."}
-              </p>
-
-              <Alert className="mb-6 bg-primary/5 border-primary/20">
-                <AlertCircle className="h-4 w-4 text-primary" />
-                <AlertDescription className="text-sm">
-                  <strong>First time?</strong> The AI model will download once (~150MB). After that, it works instantly offline!
-                </AlertDescription>
-              </Alert>
-
-              <div className="space-y-3">
-                {imagePreviews.length > 1 && (
-                  <Button
-                    onClick={handleExtractAllPages}
-                    disabled={isProcessing || isProcessingAllPages}
-                    size="lg"
-                    className="w-full h-14 text-lg rounded-xl bg-gradient-to-r from-primary to-secondary"
-                  >
-                    {isProcessingAllPages ? (
-                      <>
-                        <Loader2 className="w-6 h-6 mr-2 animate-spin" />
-                        Processing All Pages...
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="w-6 h-6 mr-2" />
-                        Extract All {imagePreviews.length} Pages
-                      </>
-                    )}
-                  </Button>
-                )}
-
+            {/* Assess Button */}
+            <Card className="p-6 gentle-shadow bg-gradient-to-br from-primary/5 to-primary/10">
+              <div className="text-center space-y-4">
+                <div>
+                  <h3 className="text-xl font-semibold text-foreground mb-2">
+                    Ready to Assess?
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    AI will extract handwriting, score against your rubric, and generate feedback for students, teachers, and parents
+                  </p>
+                </div>
+                
                 <Button
-                  onClick={() => handleTryOCR(selectedPageIndex)}
-                  disabled={isProcessing || isProcessingAllPages}
-                  variant={imagePreviews.length > 1 ? "outline" : "default"}
+                  onClick={handleAssessWriting}
+                  disabled={isProcessing}
                   size="lg"
-                  className="w-full h-14 text-lg rounded-xl"
+                  className="w-full max-w-md h-14 text-lg rounded-xl"
                 >
                   {isProcessing ? (
                     <>
                       <Loader2 className="w-6 h-6 mr-2 animate-spin" />
-                      Extracting Text...
+                      Analyzing with AI...
                     </>
                   ) : (
                     <>
-                      <Scissors className="w-6 h-6 mr-2" />
-                      {imagePreviews.length > 1 
-                        ? `Crop & Extract Page ${selectedPageIndex + 1}`
-                        : 'Crop & Extract Text'}
+                      <Sparkles className="w-6 h-6 mr-2" />
+                      Assess Writing with AI
                     </>
                   )}
                 </Button>
+
+                {isProcessing && (
+                  <motion.p 
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="text-xs text-muted-foreground"
+                  >
+                    This may take 10-30 seconds depending on image count...
+                  </motion.p>
+                )}
               </div>
-
-              {(isProcessing || isProcessingAllPages) && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="mt-6 space-y-3"
-                >
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>{ocrProgress.status}</span>
-                  </div>
-                  <Progress value={ocrProgress.progress * 100} className="h-2" />
-                </motion.div>
-              )}
             </Card>
+
+            {/* Show extracted text if available */}
+            {extractedText && (
+              <Card className="p-6 gentle-shadow">
+                <h3 className="text-lg font-semibold text-foreground mb-4">
+                  Extracted Handwriting
+                </h3>
+                <Textarea
+                  value={extractedText}
+                  readOnly
+                  className="min-h-[200px] font-mono text-sm"
+                />
+              </Card>
+            )}
           </div>
-        )}
-
-        {/* Step 3: Review & Score */}
-        {text.trim() && (
-          <div className="space-y-6">
-            <Card className="p-6 gentle-shadow">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <Type className="w-5 h-5 text-primary" />
-                  <h2 className="text-xl font-semibold text-foreground">Extracted Text</h2>
-                </div>
-                <Button
-                  onClick={handleClearAll}
-                  variant="outline"
-                  size="sm"
-                  className="rounded-xl"
-                >
-                  Start Over
-                </Button>
-              </div>
-              
-              <Alert className="mb-4 bg-primary/5 border-primary/20">
-                <AlertCircle className="h-4 w-4 text-primary" />
-                <AlertDescription className="text-sm">
-                  Review the extracted text below. You can edit it if needed before scoring.
-                </AlertDescription>
-              </Alert>
-
-              <Textarea
-                value={text}
-                onChange={(e) => setText(e.target.value)}
-                placeholder="Extracted text will appear here..."
-                className="min-h-[300px] text-base rounded-xl resize-none"
-                disabled={isProcessing}
-              />
-            </Card>
-          </div>
-        )}
-
-        {/* Score Button */}
-        {text.trim() && !isProcessing && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
-            <Button
-              onClick={handleScoreWriting}
-              className="w-full h-16 text-lg bg-gradient-to-r from-primary to-secondary hover:opacity-90 text-primary-foreground rounded-xl gentle-shadow"
-            >
-              <Sparkles className="w-5 h-5 mr-2" />
-              Score Writing & Generate Feedback
-            </Button>
-          </motion.div>
         )}
       </div>
-
-      <AnimatePresence>
-        {showCropModal && currentImageToCrop && (
-          <ImageCropModal
-            open={showCropModal}
-            onClose={() => setShowCropModal(false)}
-            imageSrc={currentImageToCrop.src}
-            onCropComplete={handleCropComplete}
-          />
-        )}
-      </AnimatePresence>
     </div>
   );
 };

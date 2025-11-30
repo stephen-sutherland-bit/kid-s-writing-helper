@@ -15,14 +15,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-type FeedbackMode = 'simple' | 'report' | 'advanced';
+type FeedbackMode = 'student' | 'teacher' | 'parent' | 'formal';
 
 const Results = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [copied, setCopied] = useState(false);
-  const [feedbackMode, setFeedbackMode] = useState<FeedbackMode>('simple');
+  const [feedbackMode, setFeedbackMode] = useState<FeedbackMode>('student');
 
   const assessment = id ? storage.getAssessment(id) : null;
 
@@ -36,7 +36,20 @@ const Results = () => {
 
   const totalScore = Object.values(assessment.scores).reduce((a, b) => a + b, 0);
   const averageScore = totalScore / Object.keys(assessment.scores).length;
-  const currentFeedback = assessment.feedback[feedbackMode];
+  
+  // Handle both old and new feedback formats
+  let currentFeedback = '';
+  if (typeof assessment.feedback === 'string') {
+    // Old format - single string feedback
+    currentFeedback = assessment.feedback;
+  } else if ('student' in assessment.feedback) {
+    // New format - 4 modes
+    currentFeedback = assessment.feedback[feedbackMode];
+  } else if ('simple' in assessment.feedback) {
+    // Old 3-mode format
+    const oldMode = feedbackMode === 'student' ? 'simple' : feedbackMode === 'teacher' ? 'report' : feedbackMode === 'parent' ? 'report' : 'advanced';
+    currentFeedback = assessment.feedback[oldMode as 'simple' | 'report' | 'advanced'];
+  }
 
   const handleCopy = async () => {
     const text = `
@@ -182,13 +195,14 @@ ${currentFeedback}
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-semibold text-foreground">Feedback</h2>
               <Select value={feedbackMode} onValueChange={(v) => setFeedbackMode(v as FeedbackMode)}>
-                <SelectTrigger className="w-[180px] rounded-xl">
+                <SelectTrigger className="w-[200px] rounded-xl">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="simple">Simple (for kids)</SelectItem>
-                  <SelectItem value="report">Report (for teachers)</SelectItem>
-                  <SelectItem value="advanced">Advanced (formal)</SelectItem>
+                  <SelectItem value="student">For Students</SelectItem>
+                  <SelectItem value="teacher">For Teachers</SelectItem>
+                  <SelectItem value="parent">For Parents</SelectItem>
+                  <SelectItem value="formal">Formal Report</SelectItem>
                 </SelectContent>
               </Select>
             </div>
