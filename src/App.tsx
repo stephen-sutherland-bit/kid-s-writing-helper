@@ -12,12 +12,17 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
+// Use basename only for GitHub Pages deployment, not for Lovable preview
+const basename = import.meta.env.PROD && window.location.hostname.includes('github.io') 
+  ? '/kid-s-writing-helper' 
+  : '';
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter basename="/kid-s-writing-helper">
+      <BrowserRouter basename={basename}>
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/rubric" element={<Rubric />} />
