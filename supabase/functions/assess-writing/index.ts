@@ -123,30 +123,39 @@ serve(async (req) => {
       ? `\n\nCURRICULUM CONTEXT FOR NEXT STEPS:\n${NZC_CURRICULUM[yearLevel]}\n\nBased on the above curriculum expectations for Year ${yearLevel}, you must also generate curriculum-aligned next steps.`
       : '';
 
-    const nextStepsInstructions = yearLevel !== undefined 
+const nextStepsInstructions = yearLevel !== undefined 
       ? `\n\nNEXT STEPS GENERATION (REQUIRED when yearLevel is provided):
 Generate two types of curriculum-aligned next steps:
 
-1. teacherNextSteps: An array of 3-5 specific, actionable teaching points for lesson planning. Each should:
-   - Be directly linked to the NZC curriculum progression for Year ${yearLevel}
-   - Focus on the most impactful areas for improvement based on the student's current performance
-   - Be specific enough for lesson planning (not vague like "improve writing")
-   - Reference specific skills from the curriculum (e.g., "Focus on teaching compound sentences with 'and', 'but', 'so'")
+CRITICAL - NEXT STEPS MUST BE SPECIFIC TO THIS STUDENT'S WRITING:
+- DO NOT give generic feedback like "add more details" if the student already shows details
+- IDENTIFY the ACTUAL areas needing improvement by analyzing the specific text
+- For early-years writers (Years 0-3), spelling/phonics issues are often the priority
+- QUOTE specific words or phrases from the text that show the issue
 
-2. studentBookFeedback: A single, simple statement for the student's writing book that:
-   - Uses child-friendly language appropriate for Year ${yearLevel}
-   - Follows the pattern: "Great job [specific praise]! Now you need to [one clear next step]."
-   - Is encouraging but specific
-   - Can be copied directly into a writing book
+1. teacherNextSteps: An array of 3-5 specific, actionable teaching points. Each MUST:
+   - CITE specific examples from the student's actual writing (e.g., "Student wrote 'ver' for 'there' - focus on listening for all sounds")
+   - Be directly linked to NZC curriculum for Year ${yearLevel}
+   - Prioritize the most impactful improvement areas for THIS student
+   - Be specific enough for lesson planning (never vague like "improve writing" or "add details")
+   - For spelling issues: identify the specific pattern (e.g., "missing middle vowels", "confusing /th/ and /v/ sounds")
 
-Example output:
-"nextSteps": {
+2. studentBookFeedback: A single, simple statement that:
+   - Praises something SPECIFIC the student did well (quoting from their text)
+   - Gives ONE clear, achievable next step based on their actual needs
+   - Uses child-friendly language for Year ${yearLevel}
+   - Pattern: "You did great when you [QUOTE SPECIFIC TEXT]. Next time, try to [SPECIFIC SKILL]."
+   - For spelling issues: "You wrote [word] really well! Next time, say [problem word] slowly and listen for all the sounds."
+
+Example analyzing "The weeced I went to The marcis Wen we got ver I gelid to Haf a llemanad":
+{
   "teacherNextSteps": [
-    "Focus on teaching compound sentences using 'and', 'but', 'so'",
-    "Introduce time connectives for sequencing (first, then, next, finally)",
-    "Practice adding sensory details - what did they see, hear, feel?"
+    "Focus on hearing all sounds in words - student wrote 'ver' for 'there', missing the /th/ and final /r/ sounds",
+    "Practice high-frequency words: 'there', 'when', 'the' (student writes 'Wen' for 'when')",
+    "Teach the 'wh' spelling pattern - student uses 'w' for 'wh' words consistently",
+    "Practice segmenting longer words into syllables (llemanad = lemonade)"
   ],
-  "studentBookFeedback": "Great job telling us about your weekend! You used good describing words. Now you need to add what happened at the end of your story."
+  "studentBookFeedback": "You did a great job telling us about going to the markets and having lemonade with Maeve! Next time, say each word slowly and listen for ALL the sounds before you write."
 }`
       : '';
 
@@ -180,46 +189,47 @@ EXPLICIT LEVEL ANCHORS (0-8 Scale):
 Score 0 - Level 1B (Beginning):
 - Single words, short phrases, or random letters
 - No sentence structure or organization
-- Heavy inventive spelling throughout
+- Heavy inventive spelling - even basic sight words incorrect
 - No punctuation or capitalization
 
-Score 1 - Level 1P (Progressing):
+Score 1 - Level 1B/1P transition:
 - 1-3 very simple sentences (e.g., "I like cats. Cats are soft.")
-- Basic "I like..." or "I see..." patterns
-- Mostly sight words, some inventive spelling
-- Minimal or inconsistent punctuation
+- Basic "I like..." or "I see..." patterns with no development
+- Many sight words incorrect, heavy phonetic spelling
+- Little or no punctuation
 
-Score 2 - Level 1A (Achieved):
-- Several related sentences forming a basic text
-- Simple connectives like "and" or "then"
-- Capital letters starting most sentences
-- Basic full stops, mostly correct sight word spelling
+Score 2 - Level 1P (Progressing) - TYPICAL FOR YEAR 1:
+- Several related sentences telling about an event/topic
+- Some sequence with basic connectives like "and" or "then"
+- Most sight words correct, phonetic spelling for harder words
+- Capital letters at starts, some full stops
+- NOTE: This is the EXPECTED level for Year 1 students
 
-Score 3 - Level 2B (Beginning):
-- Attempts at beginning/middle/end structure
-- Some descriptive language beyond basic nouns
-- More varied sentence starts beyond "I" or "The"
-- Consistent punctuation, improving spelling
+Score 3 - Level 1A (Achieved) - TYPICAL FOR END OF YEAR 1/YEAR 2:
+- Clear beginning/middle/end with developed content
+- Includes specific details beyond basics (names, places, what happened)
+- Most high-frequency words spelled correctly
+- Consistent punctuation, sentence variety emerging
 
-Score 4 - Level 2P (Progressing):
-- Clear sequence with developed events
+Score 4 - Level 2B (Beginning):
+- Clear sequence with developed events and ideas
 - Uses commas in lists correctly
 - Vocabulary shows variety and precision
 - Complex sentence attempts (because, when, if)
 
-Score 5 - Level 2A (Achieved):
+Score 5 - Level 2P (Progressing):
 - Paragraphing attempts or clear sections
 - Uses dialogue with speech marks
 - Consistent complex sentences
 - Strong vocabulary for age level
 
-Score 6 - Level 3B (Beginning):
+Score 6 - Level 2A (Achieved):
 - Multiple well-structured paragraphs
 - Varied sentence structures for effect
 - Clear authorial voice and style
 - Sophisticated punctuation (semicolons, dashes)
 
-Score 7 - Level 3P (Progressing):
+Score 7 - Level 3B (Beginning):
 - Publication-quality structure and organization
 - Advanced vocabulary with precise word choice
 - Complex punctuation used correctly
@@ -231,79 +241,79 @@ Score 8 - Level 3A (Achieved):
 - Sophisticated literary devices
 - Professional-level writing
 
+SCORING CALIBRATION FOR YEAR 1:
+- A typical Year 1 student writing about their weekend with phonetic spelling but clear ideas should score around 2 in most categories
+- If a student has good IDEAS (specific details, events, people named) but weak SPELLING, score Ideas higher than Spelling
+- DO NOT penalize Ideas/Structure/Vocabulary for spelling errors - those are separate categories
+
 RED FLAGS - DO NOT AWARD HIGHER SCORES FOR:
 - Quantity of text (length ≠ quality)
 - Effort, enthusiasm, or "trying hard"
-- Creative or imaginative content (unless technical execution matches)
+- Creative content when technical execution is weak
 - Legible handwriting (we score WRITING SKILL, not penmanship)
-- A 5-sentence story with errors is still 1B-1P level, regardless of content
 
 CATEGORY-SPECIFIC ANCHORS:
 
-IDEAS (Most Year 1-2 students score 0-2):
-- Score 0: Random ideas, no clear topic, disconnected thoughts
+IDEAS - Score the CONTENT, not the spelling:
 - Score 1: One simple idea with minimal development (e.g., "I like my cat")
-- Score 2: Related ideas with basic detail (e.g., "I like my cat. She is orange. She sleeps on my bed.")
-- Score 3+: Requires developed ideas with elaboration, details, and depth
+- Score 2: Related ideas with specific details (names, places, events - even if misspelled!)
+- Score 3: Multiple developed ideas with elaboration and depth
+- IMPORTANT: If a child writes about going to markets, having lemonade, sister Maeve loving milk - that's GOOD IDEAS (2-3) even if spelled poorly!
 
-STRUCTURE (Most Year 1-2 students score 0-2):
-- Score 0: No discernible structure, random sentences
+STRUCTURE:
 - Score 1: List-like or very basic sequence
-- Score 2: Simple beginning-middle-end attempt
-- Score 3+: Requires clear multi-part structure with transitions
+- Score 2: Simple beginning-middle-end with clear narrative flow
+- Score 3: Clear multi-part structure with transitions
 
-ORGANISATION (Most Year 1-2 students score 0-2):
-- Score 0: No logical order, ideas jumbled
-- Score 1: Basic chronological order (first, then, next)
-- Score 2: Consistent sequence with simple connectives
-- Score 3+: Requires paragraphing, topic sentences, coherent flow
+ORGANISATION:
+- Score 1: Basic chronological order (went to X, did Y)
+- Score 2: Consistent sequence with connectives (then, and)
+- Score 3: Paragraphing or clear sections
 
-VOCABULARY (Most Year 1-2 students score 0-2):
-- Score 0: Very limited words, mostly nouns ("cat", "house")
-- Score 1: Basic high-frequency words, simple descriptors (big, nice, good)
-- Score 2: Some specific nouns and adjectives beyond basics
-- Score 3+: Requires varied, precise vocabulary showing word choice
+VOCABULARY - Score word CHOICE, not spelling:
+- Score 1: Basic high-frequency words only (went, got, had)
+- Score 2: Specific nouns (markets, lemonade, milk) and some variety
+- Score 3: Varied, precise vocabulary with deliberate word choice
 
-SENTENCE STYLE (Most Year 1-2 students score 0-2):
-- Score 0: Not complete sentences, fragments
-- Score 1: Very simple sentences (I like X. X is Y.)
-- Score 2: Some variety in sentence starts and lengths
-- Score 3+: Requires deliberate sentence variety for effect
+SENTENCE STYLE:
+- Score 1: Very simple repetitive sentences (I went X. I got Y.)
+- Score 2: Some variety in sentence patterns and lengths
+- Score 3: Deliberate sentence variety for effect
 
-PUNCTUATION (Most Year 1-2 students score 0-2):
-- Score 0: No punctuation or random marks
+PUNCTUATION:
 - Score 1: Some full stops, inconsistent capitals
-- Score 2: Full stops and capitals mostly correct, attempts commas
-- Score 3+: Requires consistent punctuation including commas, speech marks
+- Score 2: Full stops and sentence capitals mostly correct
+- Score 3: Consistent punctuation including commas
 
-SPELLING (Most Year 1-2 students score 0-2):
-- Score 0: Heavy inventive spelling, even sight words incorrect
-- Score 1: Sight words mostly correct, logical phonetic attempts
-- Score 2: Common words correct, reasonable phonetic spelling for complex words
-- Score 3+: Requires mostly correct spelling including complex words
+SPELLING - Be HONEST about spelling errors:
+- Score 0: Heavy inventive spelling, most words unrecognizable
+- Score 1: Some sight words correct, many phonetic attempts
+- Score 2: High-frequency words correct, reasonable phonetic spelling
+- Score 3: Most words correct including some complex words
 
 SCORING PROCESS:
 1. Extract the handwritten text exactly as written
 2. For EACH category, identify specific evidence in the text
-3. Match that evidence to the level anchors above
-4. When in doubt between scores, choose the LOWER score
+3. Score EACH category INDEPENDENTLY - spelling errors don't affect Ideas score!
+4. Match evidence to level anchors
 5. Write justification citing specific examples from the text
-6. Be HONEST - most early-years writing will score 0-3
 
-FEEDBACK GENERATION GUARDRAILS:
-- All feedback must be evidence-based (cite specific examples)
-- Use encouraging, growth-oriented language in all modes
-- Start with genuine strengths before areas for improvement
-- Be specific and actionable (not vague like "good job")
-- Generate feedback at THREE depth levels for each audience:
-  * simple: 1-2 sentences, quick takeaway
-  * standard: One paragraph with key points
-  * comprehensive: Detailed multi-paragraph analysis with specific examples
+FEEDBACK GENERATION - MUST BE TEXT-SPECIFIC:
+- ALWAYS quote specific words/phrases from the student's writing
+- NEVER give generic feedback that could apply to any writing
+- Identify what THIS student specifically did well
+- Identify what THIS student specifically needs to work on
+- For early years: spelling/phonics issues are often the priority over "add more details"
+
+FEEDBACK DEPTH LEVELS:
+- simple: 1-2 sentences with specific reference to their text
+- standard: One paragraph citing specific examples
+- comprehensive: Detailed analysis with multiple specific quotes
 
 AUDIENCE GUIDELINES:
-- student: Simple, encouraging, age-appropriate language for young learners
-- teacher: Professional, actionable, pedagogically informed with teaching recommendations
-- parent: Clear, jargon-free, reassuring with practical home support suggestions
+- student: Simple, encouraging, age-appropriate - quote their actual words
+- teacher: Professional with specific teaching recommendations citing text evidence
+- parent: Clear, jargon-free with practical home activities based on actual writing
 ${curriculumContext}${nextStepsInstructions}
 
 OUTPUT FORMAT:
