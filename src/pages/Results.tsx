@@ -2,9 +2,9 @@ import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { ArrowLeft, Copy, Download, Check } from "lucide-react";
-import { storage } from "@/lib/storage";
-import { getLevelFromScore } from "@/lib/scoring";
+import { ArrowLeft, Copy, Download, Check, Award } from "lucide-react";
+import { storage, DEFAULT_SCORING_CHART } from "@/lib/storage";
+import { getLevelFromScore, calculateTotalScore, lookupScaleScore } from "@/lib/scoring";
 import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
 import {
@@ -37,6 +37,10 @@ const Results = () => {
   const totalScore = Object.values(assessment.scores).reduce((a, b) => a + b, 0);
   const averageScore = totalScore / Object.keys(assessment.scores).length;
   
+  // Get the official curriculum level from scoring chart
+  const scoreConversion = lookupScaleScore(totalScore);
+  const maxPossibleScore = Object.keys(assessment.scores).length * 8;
+  
   // Handle both old and new feedback formats
   let currentFeedback = '';
   if (typeof assessment.feedback === 'string') {
@@ -56,7 +60,12 @@ const Results = () => {
 e-asTTle Writing Assessment Results
 Generated: ${new Date(assessment.timestamp).toLocaleString()}
 
-Scores:
+Overall Assessment:
+Total Score: ${totalScore}/${maxPossibleScore}
+${scoreConversion ? `Scale Score: ${scoreConversion.scaleScore} aWs (±${scoreConversion.errorMargin})
+Curriculum Level: ${scoreConversion.curriculumLevel}` : ''}
+
+Category Scores:
 ${Object.entries(assessment.scores).map(([cat, score]) => 
   `${cat}: ${getLevelFromScore(score)} (${score}/8)`
 ).join('\n')}
@@ -81,8 +90,14 @@ ${currentFeedback}
 e-asTTle Writing Assessment Results
 Generated: ${new Date(assessment.timestamp).toLocaleString()}
 
-SCORES
-======
+OVERALL ASSESSMENT
+==================
+Total Raw Score: ${totalScore}/${maxPossibleScore}
+${scoreConversion ? `Scale Score: ${scoreConversion.scaleScore} aWs (±${scoreConversion.errorMargin})
+Curriculum Level: ${scoreConversion.curriculumLevel}` : ''}
+
+CATEGORY SCORES
+===============
 ${Object.entries(assessment.scores).map(([cat, score]) => 
   `${cat}: ${getLevelFromScore(score)} (${score}/8)`
 ).join('\n')}
@@ -137,6 +152,69 @@ ${currentFeedback}
             </p>
           </div>
         </div>
+
+        {/* Overall Assessment Card */}
+        {scoreConversion && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.05 }}
+          >
+            <Card className="p-6 gentle-shadow bg-gradient-to-br from-primary/10 to-accent/10 border-2 border-primary/20">
+              <div className="flex items-center gap-3 mb-4">
+                <Award className="w-6 h-6 text-primary" />
+                <h2 className="text-xl font-semibold text-foreground">Overall Assessment</h2>
+              </div>
+              
+              <div className="grid sm:grid-cols-3 gap-4 mb-4">
+                <div className="bg-card p-4 rounded-xl border border-border text-center">
+                  <div className="text-sm text-muted-foreground mb-1">Total Score</div>
+                  <div className="text-2xl font-bold text-foreground">
+                    {totalScore}<span className="text-lg text-muted-foreground">/{maxPossibleScore}</span>
+                  </div>
+                </div>
+                
+                <div className="bg-card p-4 rounded-xl border border-border text-center">
+                  <div className="text-sm text-muted-foreground mb-1">Scale Score</div>
+                  <div className="text-2xl font-bold text-foreground">
+                    {scoreConversion.scaleScore}
+                  </div>
+                  <div className="text-xs text-muted-foreground">±{scoreConversion.errorMargin} aWs</div>
+                </div>
+                
+                <div className="bg-primary p-4 rounded-xl text-center">
+                  <div className="text-sm text-primary-foreground/80 mb-1">Curriculum Level</div>
+                  <div className="text-3xl font-bold text-primary-foreground">
+                    {scoreConversion.curriculumLevel}
+                  </div>
+                </div>
+              </div>
+
+              {/* Level Progress Bar */}
+              <div className="bg-card p-4 rounded-xl border border-border">
+                <div className="flex justify-between text-xs text-muted-foreground mb-2">
+                  <span>1B</span>
+                  <span>2B</span>
+                  <span>3B</span>
+                  <span>4B</span>
+                  <span>5B</span>
+                  <span>6B+</span>
+                </div>
+                <div className="h-3 bg-muted rounded-full overflow-hidden relative">
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${Math.min(100, (totalScore / 44) * 100)}%` }}
+                    transition={{ delay: 0.3, duration: 0.8 }}
+                    className="h-full bg-gradient-to-r from-primary to-accent rounded-full"
+                  />
+                </div>
+                <div className="text-center mt-2 text-sm text-muted-foreground">
+                  Current level: <span className="font-semibold text-primary">{scoreConversion.curriculumLevel}</span>
+                </div>
+              </div>
+            </Card>
+          </motion.div>
+        )}
 
         {/* Scores Grid */}
         <motion.div

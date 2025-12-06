@@ -30,9 +30,24 @@ export interface Assessment {
   justifications?: Record<string, string>; // AI justifications for each score
 }
 
+// Scoring chart interface for e-asTTle score conversion
+export interface ScoringChartEntry {
+  totalScore: number;
+  scaleScore: number;
+  errorMargin: number;
+  curriculumLevel: string;
+}
+
+export interface ScoringChart {
+  entries: ScoringChartEntry[];
+  lastUpdated: string;
+  isCustom: boolean;
+}
+
 const RUBRIC_KEY = 'easttleRubric';
 const LAST_OCR_KEY = 'lastOcrText';
 const ASSESSMENTS_KEY = 'assessments';
+const SCORING_CHART_KEY = 'scoringChart';
 
 export const storage = {
   // Rubric management
@@ -83,6 +98,25 @@ export const storage = {
     localStorage.removeItem(RUBRIC_KEY);
     localStorage.removeItem(LAST_OCR_KEY);
     localStorage.removeItem(ASSESSMENTS_KEY);
+    localStorage.removeItem(SCORING_CHART_KEY);
+  },
+
+  // Scoring Chart management
+  saveScoringChart: (chart: ScoringChart) => {
+    localStorage.setItem(SCORING_CHART_KEY, JSON.stringify(chart));
+  },
+
+  getScoringChart: (): ScoringChart | null => {
+    const data = localStorage.getItem(SCORING_CHART_KEY);
+    return data ? JSON.parse(data) : null;
+  },
+
+  hasScoringChart: (): boolean => {
+    return localStorage.getItem(SCORING_CHART_KEY) !== null;
+  },
+
+  clearScoringChart: () => {
+    localStorage.removeItem(SCORING_CHART_KEY);
   },
 };
 
@@ -196,4 +230,50 @@ export const DEFAULT_RUBRIC: Rubric = {
     }
   ],
   lastUpdated: new Date().toISOString()
+};
+
+// Default e-asTTle scoring chart (from official conversion table)
+export const DEFAULT_SCORING_CHART: ScoringChart = {
+  entries: [
+    { totalScore: 7, scaleScore: 745, errorMargin: 134, curriculumLevel: '1B' },
+    { totalScore: 8, scaleScore: 907, errorMargin: 121, curriculumLevel: '1B' },
+    { totalScore: 9, scaleScore: 1009, errorMargin: 113, curriculumLevel: '1B' },
+    { totalScore: 10, scaleScore: 1085, errorMargin: 106, curriculumLevel: '1P' },
+    { totalScore: 11, scaleScore: 1146, errorMargin: 101, curriculumLevel: '1P' },
+    { totalScore: 12, scaleScore: 1198, errorMargin: 96, curriculumLevel: '1P' },
+    { totalScore: 13, scaleScore: 1243, errorMargin: 92, curriculumLevel: '1A' },
+    { totalScore: 14, scaleScore: 1284, errorMargin: 88, curriculumLevel: '1A' },
+    { totalScore: 15, scaleScore: 1321, errorMargin: 85, curriculumLevel: '2B' },
+    { totalScore: 16, scaleScore: 1355, errorMargin: 82, curriculumLevel: '2B' },
+    { totalScore: 17, scaleScore: 1386, errorMargin: 79, curriculumLevel: '2P' },
+    { totalScore: 18, scaleScore: 1415, errorMargin: 76, curriculumLevel: '2P' },
+    { totalScore: 19, scaleScore: 1443, errorMargin: 73, curriculumLevel: '2A' },
+    { totalScore: 20, scaleScore: 1469, errorMargin: 71, curriculumLevel: '2A' },
+    { totalScore: 21, scaleScore: 1494, errorMargin: 68, curriculumLevel: '3B' },
+    { totalScore: 22, scaleScore: 1518, errorMargin: 66, curriculumLevel: '3B' },
+    { totalScore: 23, scaleScore: 1541, errorMargin: 64, curriculumLevel: '3P' },
+    { totalScore: 24, scaleScore: 1563, errorMargin: 62, curriculumLevel: '3P' },
+    { totalScore: 25, scaleScore: 1585, errorMargin: 60, curriculumLevel: '3A' },
+    { totalScore: 26, scaleScore: 1605, errorMargin: 58, curriculumLevel: '3A' },
+    { totalScore: 27, scaleScore: 1625, errorMargin: 57, curriculumLevel: '4B' },
+    { totalScore: 28, scaleScore: 1645, errorMargin: 56, curriculumLevel: '4B' },
+    { totalScore: 29, scaleScore: 1664, errorMargin: 55, curriculumLevel: '4P' },
+    { totalScore: 30, scaleScore: 1682, errorMargin: 54, curriculumLevel: '4P' },
+    { totalScore: 31, scaleScore: 1700, errorMargin: 53, curriculumLevel: '4A' },
+    { totalScore: 32, scaleScore: 1718, errorMargin: 53, curriculumLevel: '4A' },
+    { totalScore: 33, scaleScore: 1736, errorMargin: 53, curriculumLevel: '5B' },
+    { totalScore: 34, scaleScore: 1753, errorMargin: 53, curriculumLevel: '5B' },
+    { totalScore: 35, scaleScore: 1770, errorMargin: 54, curriculumLevel: '5P' },
+    { totalScore: 36, scaleScore: 1788, errorMargin: 55, curriculumLevel: '5P' },
+    { totalScore: 37, scaleScore: 1805, errorMargin: 57, curriculumLevel: '5A' },
+    { totalScore: 38, scaleScore: 1823, errorMargin: 59, curriculumLevel: '5A' },
+    { totalScore: 39, scaleScore: 1842, errorMargin: 61, curriculumLevel: '6B' },
+    { totalScore: 40, scaleScore: 1861, errorMargin: 65, curriculumLevel: '6B' },
+    { totalScore: 41, scaleScore: 1882, errorMargin: 69, curriculumLevel: '6P' },
+    { totalScore: 42, scaleScore: 1905, errorMargin: 76, curriculumLevel: '6A' },
+    { totalScore: 43, scaleScore: 1933, errorMargin: 86, curriculumLevel: '6A' },
+    { totalScore: 44, scaleScore: 1986, errorMargin: 119, curriculumLevel: '>6B' },
+  ],
+  lastUpdated: new Date().toISOString(),
+  isCustom: false
 };
