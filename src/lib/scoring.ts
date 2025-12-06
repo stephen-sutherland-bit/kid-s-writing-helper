@@ -1,5 +1,5 @@
 // Scoring engine for e-asTTle writing assessment with AI support
-import { Rubric } from './storage';
+import { Rubric, storage, DEFAULT_SCORING_CHART } from './storage';
 
 interface TextAnalysis {
   sentenceCount: number;
@@ -170,9 +170,6 @@ export function lookupScaleScore(
   totalScore: number, 
   chart?: { entries: Array<{ totalScore: number; scaleScore: number; errorMargin: number; curriculumLevel: string }> }
 ): ScoreConversion | null {
-  // Import dynamically to avoid circular dependency issues
-  const { storage, DEFAULT_SCORING_CHART } = require('./storage');
-  
   const scoringChart = chart || storage.getScoringChart() || DEFAULT_SCORING_CHART;
   
   // Find exact match or closest lower entry
