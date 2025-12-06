@@ -278,14 +278,19 @@ const Assess = () => {
                   <SelectValue placeholder="Select year level (optional)" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="0">Year 0</SelectItem>
-                  <SelectItem value="1">Year 1</SelectItem>
-                  <SelectItem value="2">Year 2</SelectItem>
-                  <SelectItem value="3">Year 3</SelectItem>
+                  <SelectItem value="0">Year 0 (Phase 1)</SelectItem>
+                  <SelectItem value="1">Year 1 (Phase 1)</SelectItem>
+                  <SelectItem value="2">Year 2 (Phase 1)</SelectItem>
+                  <SelectItem value="3">Year 3 (Phase 1)</SelectItem>
+                  <SelectItem value="4">Year 4 (Phase 2)</SelectItem>
+                  <SelectItem value="5">Year 5 (Phase 2)</SelectItem>
+                  <SelectItem value="6">Year 6 (Phase 2)</SelectItem>
+                  <SelectItem value="7">Year 7 (Phase 3)</SelectItem>
+                  <SelectItem value="8">Year 8 (Phase 3)</SelectItem>
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground mt-2">
-                Enables curriculum-aligned "next steps" feedback based on NZC Phase 1
+                Enables curriculum-aligned "next steps" feedback based on NZC
               </p>
             </div>
           </div>
