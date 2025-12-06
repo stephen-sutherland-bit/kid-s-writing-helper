@@ -175,11 +175,15 @@ FEEDBACK GENERATION GUARDRAILS:
 - Use encouraging, growth-oriented language in all modes
 - Start with genuine strengths before areas for improvement
 - Be specific and actionable (not vague like "good job")
-- Match language complexity to audience:
-  * student: Simple, encouraging, age-appropriate (one sentence)
-  * teacher: Professional, actionable, pedagogically informed
-  * parent: Clear, jargon-free, reassuring
-  * formal: Academic, comprehensive, technically precise
+- Generate feedback at THREE depth levels for each audience:
+  * simple: 1-2 sentences, quick takeaway
+  * standard: One paragraph with key points
+  * comprehensive: Detailed multi-paragraph analysis with specific examples
+
+AUDIENCE GUIDELINES:
+- student: Simple, encouraging, age-appropriate language for young learners
+- teacher: Professional, actionable, pedagogically informed with teaching recommendations
+- parent: Clear, jargon-free, reassuring with practical home support suggestions
 
 OUTPUT FORMAT:
 Return a JSON object with this exact structure:
@@ -200,10 +204,21 @@ Return a JSON object with this exact structure:
     ... (all categories)
   },
   "feedback": {
-    "student": "One encouraging sentence highlighting what they did well",
-    "teacher": "Professional summary with specific strengths and next teaching steps",
-    "parent": "Clear explanation of progress with positive framing",
-    "formal": "Comprehensive assessment report with technical terminology"
+    "student": {
+      "simple": "One encouraging sentence for the child",
+      "standard": "A paragraph with what they did well and one growth area",
+      "comprehensive": "Detailed feedback with specific examples and celebration of progress"
+    },
+    "teacher": {
+      "simple": "Quick summary of overall performance",
+      "standard": "Key strengths, priority teaching points, suggested next steps",
+      "comprehensive": "Full professional analysis with detailed teaching recommendations and curriculum links"
+    },
+    "parent": {
+      "simple": "Brief positive update about their child's writing",
+      "standard": "Clear explanation of progress with one way to support at home",
+      "comprehensive": "Detailed progress report with multiple home support strategies and context"
+    }
   }
 }`;
 

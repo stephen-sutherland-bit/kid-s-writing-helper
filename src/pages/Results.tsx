@@ -3,8 +3,8 @@ import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ArrowLeft, Copy, Download, Check, Award } from "lucide-react";
-import { storage, DEFAULT_SCORING_CHART } from "@/lib/storage";
-import { getLevelFromScore, calculateTotalScore, lookupScaleScore } from "@/lib/scoring";
+import { storage, FeedbackAudience, FeedbackDepth, FeedbackGrid } from "@/lib/storage";
+import { getLevelFromScore, lookupScaleScore } from "@/lib/scoring";
 import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
 import {
@@ -14,8 +14,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-
-type FeedbackMode = 'student' | 'teacher' | 'parent' | 'formal';
 
 const levelToYearExpectation: Record<string, string> = {
   '1B': 'Year 1 beginning',
@@ -37,12 +35,30 @@ const levelToYearExpectation: Record<string, string> = {
   '>6B': 'Above Year 11'
 };
 
+const audienceLabels: Record<FeedbackAudience, string> = {
+  student: 'For Students',
+  teacher: 'For Teachers',
+  parent: 'For Parents'
+};
+
+const depthLabels: Record<FeedbackDepth, string> = {
+  simple: 'Quick Summary',
+  standard: 'Standard',
+  comprehensive: 'Comprehensive'
+};
+
+// Type guard to check if feedback is the new grid format
+function isFeedbackGrid(feedback: any): feedback is FeedbackGrid {
+  return feedback?.student?.simple !== undefined;
+}
+
 const Results = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [copied, setCopied] = useState(false);
-  const [feedbackMode, setFeedbackMode] = useState<FeedbackMode>('student');
+  const [feedbackAudience, setFeedbackAudience] = useState<FeedbackAudience>('student');
+  const [feedbackDepth, setFeedbackDepth] = useState<FeedbackDepth>('standard');
 
   const assessment = id ? storage.getAssessment(id) : null;
 
@@ -61,18 +77,24 @@ const Results = () => {
   const scoreConversion = lookupScaleScore(totalScore);
   const maxPossibleScore = Object.keys(assessment.scores).length * 8;
   
-  // Handle both old and new feedback formats
+  // Handle all feedback formats (new grid, old 4-mode, old 3-mode)
   let currentFeedback = '';
-  if (typeof assessment.feedback === 'string') {
-    // Old format - single string feedback
+  if (isFeedbackGrid(assessment.feedback)) {
+    // New format - 3x3 grid
+    currentFeedback = assessment.feedback[feedbackAudience][feedbackDepth];
+  } else if (typeof assessment.feedback === 'string') {
+    // Very old format - single string
     currentFeedback = assessment.feedback;
-  } else if ('student' in assessment.feedback) {
-    // New format - 4 modes
-    currentFeedback = assessment.feedback[feedbackMode];
+  } else if ('student' in assessment.feedback && typeof assessment.feedback.student === 'string') {
+    // Old 4-mode format (student/teacher/parent/formal as strings)
+    const oldFeedback = assessment.feedback as { student: string; teacher: string; parent: string; formal: string };
+    currentFeedback = oldFeedback[feedbackAudience] || oldFeedback.student;
   } else if ('simple' in assessment.feedback) {
     // Old 3-mode format
-    const oldMode = feedbackMode === 'student' ? 'simple' : feedbackMode === 'teacher' ? 'report' : feedbackMode === 'parent' ? 'report' : 'advanced';
-    currentFeedback = assessment.feedback[oldMode as 'simple' | 'report' | 'advanced'];
+    const oldFeedback = assessment.feedback as { simple: string; report: string; advanced: string };
+    currentFeedback = feedbackDepth === 'simple' ? oldFeedback.simple 
+      : feedbackDepth === 'comprehensive' ? oldFeedback.advanced 
+      : oldFeedback.report;
   }
 
   const handleCopy = async () => {
@@ -92,7 +114,7 @@ ${Object.entries(assessment.scores).map(([cat, score]) =>
 
 Average Score: ${averageScore.toFixed(1)}/8
 
-Feedback (${feedbackMode}):
+Feedback (${audienceLabels[feedbackAudience]} - ${depthLabels[feedbackDepth]}):
 ${currentFeedback}
     `.trim();
 
@@ -128,7 +150,7 @@ STUDENT WRITING
 ===============
 ${assessment.text}
 
-FEEDBACK (${feedbackMode.toUpperCase()})
+FEEDBACK (${audienceLabels[feedbackAudience].toUpperCase()} - ${depthLabels[feedbackDepth].toUpperCase()})
 ${currentFeedback}
     `.trim();
 
@@ -294,19 +316,30 @@ ${currentFeedback}
           transition={{ delay: 0.3 }}
         >
           <Card className="p-6 gentle-shadow">
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
               <h2 className="text-xl font-semibold text-foreground">Feedback</h2>
-              <Select value={feedbackMode} onValueChange={(v) => setFeedbackMode(v as FeedbackMode)}>
-                <SelectTrigger className="w-[200px] rounded-xl">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="student">For Students</SelectItem>
-                  <SelectItem value="teacher">For Teachers</SelectItem>
-                  <SelectItem value="parent">For Parents</SelectItem>
-                  <SelectItem value="formal">Formal Report</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="flex flex-wrap gap-2">
+                <Select value={feedbackAudience} onValueChange={(v) => setFeedbackAudience(v as FeedbackAudience)}>
+                  <SelectTrigger className="w-[140px] rounded-xl">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="student">For Students</SelectItem>
+                    <SelectItem value="teacher">For Teachers</SelectItem>
+                    <SelectItem value="parent">For Parents</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select value={feedbackDepth} onValueChange={(v) => setFeedbackDepth(v as FeedbackDepth)}>
+                  <SelectTrigger className="w-[160px] rounded-xl">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="simple">Quick Summary</SelectItem>
+                    <SelectItem value="standard">Standard</SelectItem>
+                    <SelectItem value="comprehensive">Comprehensive</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             <div className="bg-muted/30 p-6 rounded-xl">
