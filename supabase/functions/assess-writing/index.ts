@@ -6,8 +6,9 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// NZC Phase 1 Curriculum data embedded for the AI prompt
-const NZC_PHASE1_CURRICULUM: Record<number, string> = {
+// NZC Curriculum data embedded for the AI prompt (Years 0-8)
+const NZC_CURRICULUM: Record<number, string> = {
+  // Phase 1: Years 0-3
   0: `
 NZC ENGLISH PHASE 1 - YEAR 0 EXPECTATIONS:
 IDEAS: Current - Draws pictures and uses some letters/words to record ideas. Next steps: Write a simple sentence about their picture; Add more detail to ideas through talking before writing; Use personal experiences as topics for writing.
@@ -43,6 +44,53 @@ LANGUAGE: Current - Uses precise vocabulary and some figurative language. Next s
 SENTENCES: Current - Uses a variety of sentence structures. Next steps: Use sentence variety deliberately for effect; Start sentences with adverbs or phrases; Use relative clauses (who, which, that).
 SPELLING: Current - Spells most words correctly including some complex words. Next steps: Spell Essential List 3 words correctly; Proofread and edit for spelling errors; Use dictionary and spell-check tools.
 PUNCTUATION: Current - Uses a range of punctuation correctly. Next steps: Use commas in complex sentences; Punctuate dialogue with new lines; Use apostrophes for possession.
+`,
+  // Phase 2: Years 4-6
+  4: `
+NZC ENGLISH PHASE 2 - YEAR 4 EXPECTATIONS:
+IDEAS: Current - Develops ideas with supporting detail and some elaboration across the text. Next steps: Develop ideas with increasing depth and insight; Use specific examples and evidence to support arguments; Create well-developed characters with motivations.
+STRUCTURE: Current - Organizes ideas into paragraphs with clear topic sentences. Next steps: Use a range of text structures for different purposes; Create effective introductions that set context; Write conclusions that summarize or reflect.
+LANGUAGE: Current - Uses a range of vocabulary including subject-specific words. Next steps: Use vocabulary deliberately to influence the reader; Include technical and academic vocabulary; Use figurative language with intention.
+SENTENCES: Current - Writes complex sentences with subordinate clauses. Next steps: Vary sentence structure for rhythm and emphasis; Use passive voice when appropriate; Control sentence length for effect.
+SPELLING: Current - Spells most words correctly including subject-specific vocabulary. Next steps: Spell Essential List 4 words correctly; Apply spelling rules for prefixes and suffixes; Use etymology to help with spelling.
+PUNCTUATION: Current - Uses a range of punctuation including speech marks and apostrophes. Next steps: Use colons to introduce lists or explanations; Use semicolons to join related ideas; Use dashes and brackets for parenthesis.
+`,
+  5: `
+NZC ENGLISH PHASE 2 - YEAR 5 EXPECTATIONS:
+IDEAS: Current - Develops and sustains ideas with depth and insight. Next steps: Integrate multiple perspectives or viewpoints; Use abstract ideas alongside concrete examples; Develop themes consistently across the text.
+STRUCTURE: Current - Controls structure across a range of text types. Next steps: Manipulate structure for deliberate effect; Use flashback, flash-forward, or non-linear structures; Balance narrative and descriptive elements.
+LANGUAGE: Current - Selects vocabulary for precision and effect. Next steps: Use connotation and nuance in word choice; Develop a personal voice and style; Adapt register for different audiences.
+SENTENCES: Current - Controls a variety of sentence structures. Next steps: Use rhetorical devices (repetition, tripling); Vary syntax for emphasis and rhythm; Use fragments and minor sentences intentionally.
+SPELLING: Current - Spells accurately including complex and technical words. Next steps: Spell Essential List 5 words correctly; Use morphology to spell unfamiliar words; Proofread systematically for errors.
+PUNCTUATION: Current - Uses punctuation accurately for clarity and effect. Next steps: Use punctuation to control pace and emphasis; Use ellipsis for effect; Punctuate complex dialogue exchanges.
+`,
+  6: `
+NZC ENGLISH PHASE 2 - YEAR 6 EXPECTATIONS:
+IDEAS: Current - Develops sophisticated ideas with complexity and nuance. Next steps: Explore ambiguity and multiple interpretations; Use symbolism and extended metaphor; Develop original and creative perspectives.
+STRUCTURE: Current - Uses structure confidently across text types. Next steps: Subvert or experiment with genre conventions; Control pacing and tension effectively; Use structural devices for thematic effect.
+LANGUAGE: Current - Uses sophisticated vocabulary with precision. Next steps: Develop distinctive authorial voice; Use language to challenge or provoke; Master formal and informal registers.
+SENTENCES: Current - Uses sophisticated sentence structures with control. Next steps: Use syntax to mirror meaning; Master complex multi-clause sentences; Use sentence patterns for stylistic effect.
+SPELLING: Current - Spells accurately across all word types. Next steps: Spell Essential List 6 words correctly; Maintain accuracy under pressure; Use a range of strategies independently.
+PUNCTUATION: Current - Uses the full range of punctuation confidently. Next steps: Use punctuation for subtle effects; Master all apostrophe uses; Punctuate for voice and rhythm.
+`,
+  // Phase 3: Years 7-8
+  7: `
+NZC ENGLISH PHASE 3 - YEAR 7 EXPECTATIONS:
+IDEAS: Current - Develops complex ideas with insight and originality. Next steps: Synthesize ideas from multiple sources; Develop sustained and cohesive arguments; Explore sophisticated themes with maturity.
+STRUCTURE: Current - Controls structure with sophistication across genres. Next steps: Integrate multiple text types within a single piece; Use structure to convey meaning and theme; Master transitions between sections and ideas.
+LANGUAGE: Current - Uses language with sophistication and flair. Next steps: Develop a mature and distinctive voice; Use language to create layers of meaning; Adapt style for different purposes and contexts.
+SENTENCES: Current - Uses varied and sophisticated syntax. Next steps: Use syntax to create rhythm and flow; Master embedding and layering of clauses; Use grammatical choices for stylistic effect.
+SPELLING: Current - Spells accurately including specialized vocabulary. Next steps: Spell Essential List 7 words correctly; Master subject-specific terminology; Edit for accuracy in final drafts.
+PUNCTUATION: Current - Uses punctuation with sophistication. Next steps: Use punctuation to enhance meaning and voice; Master all advanced punctuation conventions; Use punctuation creatively within conventions.
+`,
+  8: `
+NZC ENGLISH PHASE 3 - YEAR 8 EXPECTATIONS:
+IDEAS: Current - Develops ideas with maturity, depth, and intellectual rigour. Next steps: Engage critically with complex concepts; Develop original and thought-provoking perspectives; Sustain sophisticated ideas across extended texts.
+STRUCTURE: Current - Masters structure across all text types. Next steps: Experiment with innovative structural approaches; Use structure to enhance thematic complexity; Control extended and multi-part texts.
+LANGUAGE: Current - Uses language with precision, power, and originality. Next steps: Develop a compelling and authentic voice; Use language to challenge and engage readers; Master the nuances of formal academic writing.
+SENTENCES: Current - Masters sentence variety and control. Next steps: Use syntax with conscious artistry; Control complex grammatical structures; Adapt sentence style for genre and purpose.
+SPELLING: Current - Spells accurately across all contexts. Next steps: Spell Essential List 8 words correctly; Maintain accuracy in extended writing; Use spelling knowledge to learn new words.
+PUNCTUATION: Current - Masters all punctuation conventions. Next steps: Use punctuation as a tool for expression; Maintain consistency and accuracy throughout; Apply conventions to new and complex situations.
 `
 };
 
@@ -71,8 +119,8 @@ serve(async (req) => {
     console.info(`Processing ${images.length} image(s), yearLevel: ${yearLevel ?? 'not specified'}`);
 
     // Build curriculum context if year level is provided
-    const curriculumContext = yearLevel !== undefined && NZC_PHASE1_CURRICULUM[yearLevel] 
-      ? `\n\nCURRICULUM CONTEXT FOR NEXT STEPS:\n${NZC_PHASE1_CURRICULUM[yearLevel]}\n\nBased on the above curriculum expectations for Year ${yearLevel}, you must also generate curriculum-aligned next steps.`
+    const curriculumContext = yearLevel !== undefined && NZC_CURRICULUM[yearLevel] 
+      ? `\n\nCURRICULUM CONTEXT FOR NEXT STEPS:\n${NZC_CURRICULUM[yearLevel]}\n\nBased on the above curriculum expectations for Year ${yearLevel}, you must also generate curriculum-aligned next steps.`
       : '';
 
     const nextStepsInstructions = yearLevel !== undefined 
