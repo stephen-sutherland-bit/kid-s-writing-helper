@@ -12,11 +12,20 @@ export interface Rubric {
   rawText?: string; // Full text from PDF for AI reference
 }
 
+export type FeedbackDepth = 'simple' | 'standard' | 'comprehensive';
+export type FeedbackAudience = 'student' | 'teacher' | 'parent';
+
+export interface FeedbackGrid {
+  student: { simple: string; standard: string; comprehensive: string };
+  teacher: { simple: string; standard: string; comprehensive: string };
+  parent: { simple: string; standard: string; comprehensive: string };
+}
+
 export interface Assessment {
   id: string;
   text: string;
   scores: Record<string, number>;
-  feedback: {
+  feedback: FeedbackGrid | {
     student: string;
     teacher: string;
     parent: string;
@@ -25,7 +34,7 @@ export interface Assessment {
     simple: string;
     report: string;
     advanced: string;
-  }; // Support both new and old formats for backward compatibility
+  }; // Support new grid format and old formats for backward compatibility
   timestamp: string;
   justifications?: Record<string, string>; // AI justifications for each score
 }
