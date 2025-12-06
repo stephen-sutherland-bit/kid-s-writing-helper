@@ -147,6 +147,65 @@ export function getLevelFromScore(score: number): string {
   return levels[Math.min(score, 8)];
 }
 
+/**
+ * Calculate total raw score from all category scores
+ * Each category is scored 0-8, so with 7 categories max is 56
+ */
+export function calculateTotalScore(categoryScores: Record<string, number>): number {
+  return Object.values(categoryScores).reduce((sum, score) => sum + score, 0);
+}
+
+export interface ScoreConversion {
+  totalScore: number;
+  scaleScore: number;
+  errorMargin: number;
+  curriculumLevel: string;
+}
+
+/**
+ * Look up the scale score and curriculum level from the scoring chart
+ * Uses the stored chart or default chart
+ */
+export function lookupScaleScore(
+  totalScore: number, 
+  chart?: { entries: Array<{ totalScore: number; scaleScore: number; errorMargin: number; curriculumLevel: string }> }
+): ScoreConversion | null {
+  // Import dynamically to avoid circular dependency issues
+  const { storage, DEFAULT_SCORING_CHART } = require('./storage');
+  
+  const scoringChart = chart || storage.getScoringChart() || DEFAULT_SCORING_CHART;
+  
+  // Find exact match or closest lower entry
+  let closestEntry = scoringChart.entries[0];
+  
+  for (const entry of scoringChart.entries) {
+    if (entry.totalScore === totalScore) {
+      return entry;
+    }
+    if (entry.totalScore <= totalScore) {
+      closestEntry = entry;
+    }
+  }
+  
+  // If total score is below minimum (7), return minimum
+  if (totalScore < scoringChart.entries[0].totalScore) {
+    return {
+      ...scoringChart.entries[0],
+      totalScore: totalScore
+    };
+  }
+  
+  // If total score is above maximum, return maximum
+  if (totalScore > scoringChart.entries[scoringChart.entries.length - 1].totalScore) {
+    return {
+      ...scoringChart.entries[scoringChart.entries.length - 1],
+      totalScore: totalScore
+    };
+  }
+  
+  return closestEntry;
+}
+
 export interface AIScoringResult {
   scores: Record<string, number>;
   justifications: Record<string, string>;

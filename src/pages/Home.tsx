@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { BookOpen, Upload, Camera, FileText } from "lucide-react";
+import { BookOpen, Upload, Camera, FileText, TableIcon } from "lucide-react";
 import { storage } from "@/lib/storage";
 import { motion } from "framer-motion";
 
@@ -9,6 +9,8 @@ const Home = () => {
   const navigate = useNavigate();
   const hasRubric = storage.hasRubric();
   const rubric = storage.getRubric();
+  const hasScoringChart = storage.hasScoringChart();
+  const scoringChart = storage.getScoringChart();
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4 md:p-8">
@@ -77,6 +79,37 @@ const Home = () => {
                 <Upload className="w-5 h-5 mr-2" />
                 {hasRubric ? "Update Rubric" : "Upload Custom Rubric"}
               </Button>
+
+              <Button
+                onClick={() => navigate("/scoring-chart")}
+                variant="outline"
+                className="w-full h-12 text-base border-2 rounded-xl"
+              >
+                <TableIcon className="w-5 h-5 mr-2" />
+                {hasScoringChart && scoringChart?.isCustom ? "Update Scoring Chart" : "View Scoring Chart"}
+              </Button>
+            </div>
+
+            {/* Scoring Chart Status */}
+            <div className="bg-muted/30 p-4 rounded-xl">
+              <div className="flex items-center gap-3 mb-2">
+                <TableIcon className="w-5 h-5 text-primary" />
+                <h3 className="font-semibold text-foreground">Score Conversion</h3>
+              </div>
+              {hasScoringChart && scoringChart ? (
+                <div className="text-sm space-y-1">
+                  <p className="text-foreground">
+                    ✓ {scoringChart.isCustom ? 'Custom' : 'Official'} chart loaded
+                  </p>
+                  <p className="text-muted-foreground text-xs">
+                    {scoringChart.entries.length} conversions • Updated: {new Date(scoringChart.lastUpdated).toLocaleDateString()}
+                  </p>
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  Using default e-asTTle scoring chart (1B to &gt;6B levels)
+                </p>
+              )}
             </div>
 
             {/* Quick Info */}
