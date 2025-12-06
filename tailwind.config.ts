@@ -57,12 +57,11 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
-        montessori: {
-          cream: "hsl(var(--warm-cream))",
-          sky: "hsl(var(--sky-blue))",
-          pink: "hsl(var(--soft-pink))",
-          sage: "hsl(var(--sage-green))",
-          sunshine: "hsl(var(--sunshine))",
+        purple: {
+          DEFAULT: "hsl(var(--purple-start))",
+          light: "hsl(var(--purple-light))",
+          dark: "hsl(var(--purple-dark))",
+          end: "hsl(var(--purple-end))",
         },
       },
       fontFamily: {

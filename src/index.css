@@ -8,94 +8,86 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    /* Montessori-inspired warm, calm palette */
-    --background: 38 50% 97%;  /* Warm cream #FAF8F4 */
-    --foreground: 0 0% 23%;    /* Soft dark text #3A3A3A */
+    /* Modern purple/violet education app palette */
+    --background: 220 20% 96%;      /* Light gray-blue #F2F4F7 */
+    --foreground: 240 10% 20%;      /* Dark slate text */
 
-    --card: 0 0% 100%;         /* Pure white cards */
-    --card-foreground: 0 0% 23%;
+    --card: 0 0% 100%;              /* Pure white cards */
+    --card-foreground: 240 10% 20%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 23%;
+    --popover-foreground: 240 10% 20%;
 
-    /* Sky blue primary - calm and encouraging */
-    --primary: 211 52% 77%;          /* #A7C6ED */
+    /* Purple primary - modern and professional */
+    --primary: 265 85% 55%;         /* Vibrant purple #8B2FC9 */
     --primary-foreground: 0 0% 100%;
 
-    /* Soft pink secondary - warm and friendly */
-    --secondary: 345 77% 92%;        /* #F7D6E0 */
-    --secondary-foreground: 0 0% 23%;
+    /* Light purple secondary */
+    --secondary: 265 60% 95%;       /* Very light purple */
+    --secondary-foreground: 265 85% 35%;
 
-    /* Muted sage green - gentle and natural */
-    --muted: 95 41% 84%;             /* #CDE7BE */
-    --muted-foreground: 0 0% 40%;
+    /* Muted purple-gray */
+    --muted: 240 10% 92%;
+    --muted-foreground: 240 10% 45%;
 
-    /* Sunshine yellow accent - bright but soft */
-    --accent: 51 100% 85%;           /* #FFF0B3 */
-    --accent-foreground: 0 0% 23%;
+    /* Purple accent */
+    --accent: 280 80% 60%;          /* Magenta-purple */
+    --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 65% 65%;
+    --destructive: 0 65% 55%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 38 30% 90%;            /* Soft warm border */
-    --input: 38 30% 90%;
-    --ring: 211 52% 77%;
+    --border: 240 10% 88%;
+    --input: 240 10% 92%;
+    --ring: 265 85% 55%;
 
-    --radius: 1rem;                  /* Very rounded - Montessori feel */
+    --radius: 1rem;
     
-    /* Custom Montessori palette extensions */
-    --warm-cream: 38 50% 97%;
-    --sky-blue: 211 52% 77%;
-    --soft-pink: 345 77% 92%;
-    --sage-green: 95 41% 84%;
-    --sunshine: 51 100% 85%;
+    /* Custom palette extensions */
+    --purple-start: 265 85% 55%;    /* Purple gradient start */
+    --purple-end: 280 80% 60%;      /* Magenta gradient end */
+    --purple-light: 265 60% 95%;    /* Light purple background */
+    --purple-dark: 265 85% 35%;     /* Dark purple for text */
 
-    --sidebar-background: 0 0% 98%;
-
-    --sidebar-foreground: 240 5.3% 26.1%;
-
-    --sidebar-primary: 240 5.9% 10%;
-
-    --sidebar-primary-foreground: 0 0% 98%;
-
-    --sidebar-accent: 240 4.8% 95.9%;
-
-    --sidebar-accent-foreground: 240 5.9% 10%;
-
-    --sidebar-border: 220 13% 91%;
-
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 240 10% 20%;
+    --sidebar-primary: 265 85% 55%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 265 60% 95%;
+    --sidebar-accent-foreground: 265 85% 35%;
+    --sidebar-border: 240 10% 88%;
+    --sidebar-ring: 265 85% 55%;
   }
 
   .dark {
-    /* Keep light theme for Montessori feel - dark mode not needed */
-    --background: 38 50% 97%;
-    --foreground: 0 0% 23%;
+    /* Keep light theme - dark mode matches light */
+    --background: 220 20% 96%;
+    --foreground: 240 10% 20%;
     --card: 0 0% 100%;
-    --card-foreground: 0 0% 23%;
+    --card-foreground: 240 10% 20%;
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 23%;
-    --primary: 211 52% 77%;
+    --popover-foreground: 240 10% 20%;
+    --primary: 265 85% 55%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 345 77% 92%;
-    --secondary-foreground: 0 0% 23%;
-    --muted: 95 41% 84%;
-    --muted-foreground: 0 0% 40%;
-    --accent: 51 100% 85%;
-    --accent-foreground: 0 0% 23%;
-    --destructive: 0 65% 65%;
+    --secondary: 265 60% 95%;
+    --secondary-foreground: 265 85% 35%;
+    --muted: 240 10% 92%;
+    --muted-foreground: 240 10% 45%;
+    --accent: 280 80% 60%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 65% 55%;
     --destructive-foreground: 0 0% 100%;
-    --border: 38 30% 90%;
-    --input: 38 30% 90%;
-    --ring: 211 52% 77%;
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 240 5.9% 10%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --border: 240 10% 88%;
+    --input: 240 10% 92%;
+    --ring: 265 85% 55%;
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 240 10% 20%;
+    --sidebar-primary: 265 85% 55%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 265 60% 95%;
+    --sidebar-accent-foreground: 265 85% 35%;
+    --sidebar-border: 240 10% 88%;
+    --sidebar-ring: 265 85% 55%;
   }
 }
 
@@ -116,14 +108,14 @@ All colors MUST be HSL.
 
 @layer utilities {
   .gentle-shadow {
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 4px 20px rgba(139, 47, 201, 0.08);
   }
   
   .warm-gradient {
-    background: linear-gradient(135deg, hsl(var(--sky-blue)), hsl(var(--soft-pink)));
+    background: linear-gradient(135deg, hsl(var(--purple-start)), hsl(var(--purple-end)));
   }
   
   .sunshine-gradient {
-    background: linear-gradient(135deg, hsl(var(--sunshine)), hsl(var(--sage-green)));
+    background: linear-gradient(135deg, hsl(var(--purple-light)), hsl(var(--secondary)));
   }
 }
