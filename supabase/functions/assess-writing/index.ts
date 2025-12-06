@@ -6,13 +6,53 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// NZC Phase 1 Curriculum data embedded for the AI prompt
+const NZC_PHASE1_CURRICULUM: Record<number, string> = {
+  0: `
+NZC ENGLISH PHASE 1 - YEAR 0 EXPECTATIONS:
+IDEAS: Current - Draws pictures and uses some letters/words to record ideas. Next steps: Write a simple sentence about their picture; Add more detail to ideas through talking before writing; Use personal experiences as topics for writing.
+STRUCTURE: Current - Creates simple texts (labels, captions, lists). Next steps: Write simple recounts with a beginning; Include 2-3 related ideas in sequence; Use "I" statements to tell about themselves.
+LANGUAGE: Current - Uses familiar oral vocabulary in writing. Next steps: Stretch vocabulary beyond everyday words; Use describing words (adjectives) like colors and sizes; Include action words (verbs) in sentences.
+SENTENCES: Current - Attempts simple sentences with support. Next steps: Write complete sentences with subject and verb; Start sentences with "I", "The", "My"; Use "and" to join two ideas.
+SPELLING: Current - Uses beginning sounds and some sight words. Next steps: Spell high-frequency words correctly (I, a, the, is, to, and); Use initial and final sounds in unknown words; Write CVC words phonetically.
+PUNCTUATION: Current - Beginning to understand spaces between words. Next steps: Use finger spaces between words; Start sentences with a capital letter; Put a full stop at the end of a sentence.
+`,
+  1: `
+NZC ENGLISH PHASE 1 - YEAR 1 EXPECTATIONS:
+IDEAS: Current - Writes about personal experiences with some detail. Next steps: Add more specific details (who, what, where); Include feelings or reactions in writing; Develop one main idea with supporting details.
+STRUCTURE: Current - Creates simple texts with a beginning and end. Next steps: Write texts with a clear beginning, middle, and end; Use time connectives (first, then, next, finally); Keep ideas in logical order.
+LANGUAGE: Current - Uses simple describing words and verbs. Next steps: Use more specific nouns (golden retriever vs dog); Add adverbs to describe actions (ran quickly); Include dialogue in stories.
+SENTENCES: Current - Writes simple and compound sentences using "and". Next steps: Vary sentence beginnings (not always "I" or "The"); Use "but" and "so" to join sentences; Write sentences of different lengths.
+SPELLING: Current - Spells common words correctly, uses phonetic spelling for others. Next steps: Spell Essential List 1 words correctly; Use common spelling patterns (-ing, -ed, -er); Check and fix spelling using word cards.
+PUNCTUATION: Current - Uses capital letters and full stops with some consistency. Next steps: Use capital letters for names and "I"; Use question marks for questions; Use commas in lists.
+`,
+  2: `
+NZC ENGLISH PHASE 1 - YEAR 2 EXPECTATIONS:
+IDEAS: Current - Develops ideas with relevant details and some elaboration. Next steps: Show not tell (describe feelings through actions); Add sensory details (what they saw, heard, felt); Include interesting or surprising details.
+STRUCTURE: Current - Writes texts with clear beginning, middle, and end. Next steps: Create an engaging opening that hooks the reader; Build tension or interest in the middle; Write satisfying endings that connect to the beginning.
+LANGUAGE: Current - Uses varied vocabulary including adjectives and adverbs. Next steps: Choose precise words for effect; Use similes (as fast as lightning); Include technical vocabulary for the topic.
+SENTENCES: Current - Writes compound sentences with connectives. Next steps: Use complex sentences with "because", "when", "if"; Start sentences in different ways for effect; Use short sentences for impact.
+SPELLING: Current - Spells most common words correctly. Next steps: Spell Essential List 2 words correctly; Use spelling strategies (look-cover-write-check); Apply common spelling rules.
+PUNCTUATION: Current - Uses basic punctuation consistently. Next steps: Use speech marks for dialogue correctly; Use apostrophes for contractions (don't, can't); Use exclamation marks for effect.
+`,
+  3: `
+NZC ENGLISH PHASE 1 - YEAR 3 EXPECTATIONS:
+IDEAS: Current - Develops and elaborates ideas with relevant details. Next steps: Develop character through actions, dialogue, and thoughts; Create atmosphere through descriptive detail; Use examples and evidence to support main ideas.
+STRUCTURE: Current - Organizes texts with paragraphs or sections. Next steps: Use topic sentences to introduce paragraphs; Link paragraphs with transition words; Plan and organize ideas before writing.
+LANGUAGE: Current - Uses precise vocabulary and some figurative language. Next steps: Use metaphors for effect; Choose vocabulary to create mood; Use personification and onomatopoeia.
+SENTENCES: Current - Uses a variety of sentence structures. Next steps: Use sentence variety deliberately for effect; Start sentences with adverbs or phrases; Use relative clauses (who, which, that).
+SPELLING: Current - Spells most words correctly including some complex words. Next steps: Spell Essential List 3 words correctly; Proofread and edit for spelling errors; Use dictionary and spell-check tools.
+PUNCTUATION: Current - Uses a range of punctuation correctly. Next steps: Use commas in complex sentences; Punctuate dialogue with new lines; Use apostrophes for possession.
+`
+};
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { images, rubric } = await req.json();
+    const { images, rubric, yearLevel } = await req.json();
     
     if (!images || images.length === 0) {
       throw new Error('No images provided');
@@ -28,7 +68,39 @@ serve(async (req) => {
     }
 
     console.info('Starting unified assessment with OpenAI GPT-4o...');
-    console.info(`Processing ${images.length} image(s)`);
+    console.info(`Processing ${images.length} image(s), yearLevel: ${yearLevel ?? 'not specified'}`);
+
+    // Build curriculum context if year level is provided
+    const curriculumContext = yearLevel !== undefined && NZC_PHASE1_CURRICULUM[yearLevel] 
+      ? `\n\nCURRICULUM CONTEXT FOR NEXT STEPS:\n${NZC_PHASE1_CURRICULUM[yearLevel]}\n\nBased on the above curriculum expectations for Year ${yearLevel}, you must also generate curriculum-aligned next steps.`
+      : '';
+
+    const nextStepsInstructions = yearLevel !== undefined 
+      ? `\n\nNEXT STEPS GENERATION (REQUIRED when yearLevel is provided):
+Generate two types of curriculum-aligned next steps:
+
+1. teacherNextSteps: An array of 3-5 specific, actionable teaching points for lesson planning. Each should:
+   - Be directly linked to the NZC curriculum progression for Year ${yearLevel}
+   - Focus on the most impactful areas for improvement based on the student's current performance
+   - Be specific enough for lesson planning (not vague like "improve writing")
+   - Reference specific skills from the curriculum (e.g., "Focus on teaching compound sentences with 'and', 'but', 'so'")
+
+2. studentBookFeedback: A single, simple statement for the student's writing book that:
+   - Uses child-friendly language appropriate for Year ${yearLevel}
+   - Follows the pattern: "Great job [specific praise]! Now you need to [one clear next step]."
+   - Is encouraging but specific
+   - Can be copied directly into a writing book
+
+Example output:
+"nextSteps": {
+  "teacherNextSteps": [
+    "Focus on teaching compound sentences using 'and', 'but', 'so'",
+    "Introduce time connectives for sequencing (first, then, next, finally)",
+    "Practice adding sensory details - what did they see, hear, feel?"
+  ],
+  "studentBookFeedback": "Great job telling us about your weekend! You used good describing words. Now you need to add what happened at the end of your story."
+}`
+      : '';
 
     // Build comprehensive system prompt with calibrated scoring
     const systemPrompt = `You are an expert teacher's assistant specializing in assessing student writing using the New Zealand e-asTTle writing rubric.
@@ -36,7 +108,7 @@ serve(async (req) => {
 YOUR TASK:
 1. Extract ONLY the child's handwritten text from the images (ignore printed text, drawings, instructions)
 2. Score the writing against each rubric category (0-8 scale)
-3. Generate feedback in four different modes for different audiences
+3. Generate feedback in THREE depth levels for THREE audiences (creating a 3x3 feedback grid)${yearLevel !== undefined ? '\n4. Generate curriculum-aligned next steps for teaching and student writing book' : ''}
 
 CRITICAL GUARDRAILS FOR TEXT EXTRACTION:
 - ONLY extract the student's handwritten text
@@ -184,6 +256,7 @@ AUDIENCE GUIDELINES:
 - student: Simple, encouraging, age-appropriate language for young learners
 - teacher: Professional, actionable, pedagogically informed with teaching recommendations
 - parent: Clear, jargon-free, reassuring with practical home support suggestions
+${curriculumContext}${nextStepsInstructions}
 
 OUTPUT FORMAT:
 Return a JSON object with this exact structure:
@@ -219,7 +292,11 @@ Return a JSON object with this exact structure:
       "standard": "Clear explanation of progress with one way to support at home",
       "comprehensive": "Detailed progress report with multiple home support strategies and context"
     }
-  }
+  }${yearLevel !== undefined ? `,
+  "nextSteps": {
+    "teacherNextSteps": ["Teaching point 1", "Teaching point 2", "Teaching point 3"],
+    "studentBookFeedback": "Great job [praise]! Now you need to [next step]."
+  }` : ''}
 }`;
 
     // Build user prompt with rubric and image content
@@ -228,7 +305,7 @@ Return a JSON object with this exact structure:
     const userContent: any[] = [
       {
         type: "text",
-        text: `Here is the e-asTTle writing rubric to use for assessment:\n\n${rubricText}\n\nPlease assess the student's handwriting in the following image(s).`
+        text: `Here is the e-asTTle writing rubric to use for assessment:\n\n${rubricText}\n\n${yearLevel !== undefined ? `Student is in Year ${yearLevel}. Please include curriculum-aligned next steps in your response.\n\n` : ''}Please assess the student's handwriting in the following image(s).`
       }
     ];
 
@@ -257,7 +334,7 @@ Return a JSON object with this exact structure:
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userContent }
         ],
-        max_tokens: 2000,
+        max_tokens: 3000,
         temperature: 0.3, // Lower temperature for more consistent scoring
         response_format: { type: "json_object" }
       }),
@@ -299,6 +376,9 @@ Return a JSON object with this exact structure:
     }
 
     console.info('Assessment completed successfully');
+    if (result.nextSteps) {
+      console.info('Next steps generated:', JSON.stringify(result.nextSteps));
+    }
 
     return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

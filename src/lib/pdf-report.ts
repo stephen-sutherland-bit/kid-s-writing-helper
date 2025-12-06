@@ -1,6 +1,6 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { Assessment, FeedbackAudience, FeedbackDepth } from './storage';
+import { Assessment, FeedbackAudience, FeedbackDepth, NextSteps } from './storage';
 import { getLevelFromScore, lookupScaleScore } from './scoring';
 
 interface PDFReportOptions {
@@ -247,6 +247,50 @@ export function generateAssessmentPDF(options: PDFReportOptions): void {
   doc.text(displayFeedbackLines, margin + 6, yPos + 8);
   
   yPos += feedbackBoxHeight + 12;
+
+  // === NEXT STEPS SECTION (if available) ===
+  if (assessment.nextSteps) {
+    if (yPos > pageHeight - 100) {
+      doc.addPage();
+      yPos = margin;
+    }
+
+    doc.setTextColor(...headerColor);
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.text('NEXT STEPS', margin, yPos);
+    
+    yPos += 6;
+    
+    // Teacher next steps
+    doc.setFillColor(...bgColor);
+    doc.setDrawColor(...borderColor);
+    const nextStepsText = assessment.nextSteps.teacherNextSteps.map(s => `• ${s}`).join('\n');
+    const nextStepsLines = doc.splitTextToSize(nextStepsText, contentWidth - 12);
+    const nextStepsHeight = Math.min(40, nextStepsLines.length * 4 + 10);
+    
+    doc.roundedRect(margin, yPos, contentWidth, nextStepsHeight, 2, 2, 'FD');
+    doc.setTextColor(...textColor);
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.text(nextStepsLines.slice(0, 8), margin + 6, yPos + 6);
+    
+    yPos += nextStepsHeight + 8;
+    
+    // Student book feedback
+    if (yPos < pageHeight - 40) {
+      doc.setTextColor(...mutedColor);
+      doc.setFontSize(8);
+      doc.text('FOR STUDENT WRITING BOOK:', margin, yPos);
+      yPos += 5;
+      doc.setTextColor(...textColor);
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'italic');
+      const bookFeedback = doc.splitTextToSize(`"${assessment.nextSteps.studentBookFeedback}"`, contentWidth);
+      doc.text(bookFeedback.slice(0, 2), margin, yPos);
+      yPos += bookFeedback.length * 4 + 8;
+    }
+  }
   
   // Check if we need a new page for student writing
   if (yPos > pageHeight - 80) {

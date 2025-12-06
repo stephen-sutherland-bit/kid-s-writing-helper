@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { ArrowLeft, Copy, Download, Check, Award, FileText, User } from "lucide-react";
+import { ArrowLeft, Copy, Download, Check, Award, FileText, User, GraduationCap, BookOpen } from "lucide-react";
 import { storage, FeedbackAudience, FeedbackDepth, FeedbackGrid } from "@/lib/storage";
 import { getLevelFromScore, lookupScaleScore } from "@/lib/scoring";
 import { generateAssessmentPDF } from "@/lib/pdf-report";
@@ -431,6 +431,73 @@ ${currentFeedback}
             </div>
           </Card>
         </motion.div>
+
+        {/* Next Steps Section - Only show if available */}
+        {assessment.nextSteps && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.35 }}
+          >
+            <Card className="p-6 gentle-shadow bg-gradient-to-br from-accent/5 to-primary/5 border-accent/20">
+              <div className="flex items-center gap-3 mb-4">
+                <GraduationCap className="w-6 h-6 text-accent" />
+                <h2 className="text-xl font-semibold text-foreground">Curriculum-Aligned Next Steps</h2>
+                {assessment.yearLevel !== undefined && (
+                  <span className="text-sm bg-accent/10 text-accent px-2 py-1 rounded-lg">Year {assessment.yearLevel}</span>
+                )}
+              </div>
+
+              {/* Teacher Next Steps */}
+              <div className="mb-6">
+                <h3 className="text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wide">For Teaching</h3>
+                <ul className="space-y-2">
+                  {assessment.nextSteps.teacherNextSteps.map((step, idx) => (
+                    <li key={idx} className="flex items-start gap-2 text-foreground">
+                      <span className="text-primary mt-1">•</span>
+                      <span>{step}</span>
+                    </li>
+                  ))}
+                </ul>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-3 rounded-xl"
+                  onClick={() => {
+                    navigator.clipboard.writeText(assessment.nextSteps!.teacherNextSteps.join('\n• '));
+                    toast({ title: "Copied teaching points!" });
+                  }}
+                >
+                  <Copy className="w-3 h-3 mr-1" />
+                  Copy
+                </Button>
+              </div>
+
+              {/* Student Book Feedback */}
+              <div>
+                <h3 className="text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wide flex items-center gap-2">
+                  <BookOpen className="w-4 h-4" />
+                  For Student's Writing Book
+                </h3>
+                <div className="bg-card p-4 rounded-xl border-2 border-dashed border-accent/30">
+                  <p className="text-foreground italic">"{assessment.nextSteps.studentBookFeedback}"</p>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-3 rounded-xl"
+                  onClick={() => {
+                    navigator.clipboard.writeText(assessment.nextSteps!.studentBookFeedback);
+                    toast({ title: "Copied student feedback!" });
+                  }}
+                >
+                  <Copy className="w-3 h-3 mr-1" />
+                  Copy for Writing Book
+                </Button>
+              </div>
+            </Card>
+          </motion.div>
+        )}
 
         {/* Student Text */}
         <motion.div
