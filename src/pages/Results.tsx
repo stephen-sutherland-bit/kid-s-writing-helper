@@ -17,6 +17,26 @@ import {
 
 type FeedbackMode = 'student' | 'teacher' | 'parent' | 'formal';
 
+const levelToYearExpectation: Record<string, string> = {
+  '1B': 'Year 1 beginning',
+  '1P': 'Year 1-2 expected',
+  '1A': 'Year 2 expected',
+  '2B': 'Year 2-3 expected',
+  '2P': 'Year 3-4 expected',
+  '2A': 'Year 4 expected',
+  '3B': 'Year 4-5 expected',
+  '3P': 'Year 5-6 expected',
+  '3A': 'Year 6 expected',
+  '4B': 'Year 6-7 expected',
+  '4P': 'Year 7-8 expected',
+  '4A': 'Year 8 expected',
+  '5B': 'Year 8-9 expected',
+  '5P': 'Year 9-10 expected',
+  '5A': 'Year 10 expected',
+  '6B': 'Year 10-11 expected',
+  '>6B': 'Above Year 11'
+};
+
 const Results = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -187,6 +207,9 @@ ${currentFeedback}
                   <div className="text-3xl font-bold text-primary-foreground">
                     {scoreConversion.curriculumLevel}
                   </div>
+                  <div className="text-xs text-primary-foreground/70 mt-1">
+                    {levelToYearExpectation[scoreConversion.curriculumLevel] || 'Year level varies'}
+                  </div>
                 </div>
               </div>
 
@@ -210,6 +233,7 @@ ${currentFeedback}
                 </div>
                 <div className="text-center mt-2 text-sm text-muted-foreground">
                   Current level: <span className="font-semibold text-primary">{scoreConversion.curriculumLevel}</span>
+                  <span className="ml-1">({levelToYearExpectation[scoreConversion.curriculumLevel] || ''})</span>
                 </div>
               </div>
             </Card>
