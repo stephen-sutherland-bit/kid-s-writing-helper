@@ -79,22 +79,38 @@ const Results = () => {
   
   // Handle all feedback formats (new grid, old 4-mode, old 3-mode)
   let currentFeedback = '';
-  if (isFeedbackGrid(assessment.feedback)) {
-    // New format - 3x3 grid
-    currentFeedback = assessment.feedback[feedbackAudience][feedbackDepth];
-  } else if (typeof assessment.feedback === 'string') {
+  
+  const feedback = assessment.feedback;
+  
+  if (typeof feedback === 'string') {
     // Very old format - single string
-    currentFeedback = assessment.feedback;
-  } else if ('student' in assessment.feedback && typeof assessment.feedback.student === 'string') {
-    // Old 4-mode format (student/teacher/parent/formal as strings)
-    const oldFeedback = assessment.feedback as { student: string; teacher: string; parent: string; formal: string };
-    currentFeedback = oldFeedback[feedbackAudience] || oldFeedback.student;
-  } else if ('simple' in assessment.feedback) {
-    // Old 3-mode format
-    const oldFeedback = assessment.feedback as { simple: string; report: string; advanced: string };
+    currentFeedback = feedback;
+  } else if (isFeedbackGrid(feedback)) {
+    // New format - 3x3 grid (student/teacher/parent each have simple/standard/comprehensive)
+    const audienceFeedback = feedback[feedbackAudience];
+    currentFeedback = audienceFeedback[feedbackDepth];
+  } else if ('simple' in feedback && typeof (feedback as any).simple === 'string') {
+    // Old 3-mode format (simple/report/advanced as strings)
+    const oldFeedback = feedback as { simple: string; report: string; advanced: string };
     currentFeedback = feedbackDepth === 'simple' ? oldFeedback.simple 
       : feedbackDepth === 'comprehensive' ? oldFeedback.advanced 
       : oldFeedback.report;
+  } else if ('student' in feedback) {
+    // Old 4-mode format OR partially migrated format
+    const studentValue = (feedback as any).student;
+    if (typeof studentValue === 'string') {
+      // Old 4-mode format (student/teacher/parent/formal as strings)
+      const oldFeedback = feedback as { student: string; teacher: string; parent: string; formal: string };
+      currentFeedback = oldFeedback[feedbackAudience] || oldFeedback.student;
+    } else if (typeof studentValue === 'object' && studentValue !== null) {
+      // Partially migrated - extract string from nested object
+      currentFeedback = studentValue[feedbackDepth] || studentValue.standard || studentValue.simple || '';
+    }
+  }
+  
+  // Final safety check - ensure we always render a string
+  if (typeof currentFeedback !== 'string') {
+    currentFeedback = 'Feedback not available in expected format.';
   }
 
   const handleCopy = async () => {
