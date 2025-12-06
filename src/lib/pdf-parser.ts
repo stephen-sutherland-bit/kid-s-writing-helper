@@ -2,8 +2,16 @@
 import * as pdfjsLib from 'pdfjs-dist';
 import { Rubric, RubricCategory } from './storage';
 
-// Configure PDF.js worker - using unpkg for better reliability
-pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.js`;
+// Lazy-load PDF.js worker configuration to prevent app crashes
+let pdfWorkerConfigured = false;
+
+function ensurePdfWorkerConfigured() {
+  if (!pdfWorkerConfigured) {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 
+      'https://unpkg.com/pdfjs-dist@5.4.449/build/pdf.worker.min.mjs';
+    pdfWorkerConfigured = true;
+  }
+}
 
 export interface ParsedRubric {
   rubric: Rubric;
@@ -15,6 +23,7 @@ export interface ParsedRubric {
  */
 export async function parsePdfRubric(file: File): Promise<ParsedRubric> {
   try {
+    ensurePdfWorkerConfigured();
     console.log('Starting PDF parse, file size:', file.size);
     const arrayBuffer = await file.arrayBuffer();
     console.log('ArrayBuffer created, loading PDF...');
