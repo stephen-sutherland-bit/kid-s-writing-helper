@@ -4,7 +4,9 @@ import { useDropzone } from "react-dropzone";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Camera, Upload, Loader2, Sparkles, ImageIcon, X, Plus, AlertCircle } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { ArrowLeft, Camera, Upload, Loader2, Sparkles, ImageIcon, X, Plus, AlertCircle, User } from "lucide-react";
 import { validateImageFile } from "@/lib/ocr";
 import { assessWritingWithOpenAI } from "@/lib/scoring";
 import { storage } from "@/lib/storage";
@@ -25,6 +27,7 @@ const Assess = () => {
   const [extractedText, setExtractedText] = useState("");
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const [studentName, setStudentName] = useState("");
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     accept: { 'image/*': ['.jpeg', '.jpg', '.png', '.webp'] },
@@ -164,9 +167,10 @@ const Assess = () => {
       const totalScore = Object.values(result.scores).reduce((a, b) => a + b, 0);
       const averageScore = totalScore / Object.keys(result.scores).length;
 
-      // Save assessment with new 4-mode feedback structure
+      // Save assessment with student name and feedback
       const assessment = {
         id: Date.now().toString(),
+        studentName: studentName.trim() || undefined,
         text: result.extractedText,
         scores: result.scores,
         feedback: result.feedback,
@@ -201,6 +205,7 @@ const Assess = () => {
     setImagePreviews([]);
     setPendingFiles([]);
     setExtractedText("");
+    setStudentName("");
   };
 
   return (
@@ -307,6 +312,27 @@ const Assess = () => {
         {/* Review & Assess Section */}
         {imagePreviews.length > 0 && (
           <div className="space-y-6">
+            {/* Student Name Input */}
+            <Card className="p-6 gentle-shadow">
+              <div className="flex items-center gap-2 mb-4">
+                <User className="w-5 h-5 text-primary" />
+                <Label htmlFor="studentName" className="text-lg font-semibold text-foreground">
+                  Student's Name
+                </Label>
+              </div>
+              <Input
+                id="studentName"
+                type="text"
+                placeholder="Enter student's name (optional)"
+                value={studentName}
+                onChange={(e) => setStudentName(e.target.value)}
+                className="max-w-md rounded-xl h-12 text-base"
+              />
+              <p className="text-xs text-muted-foreground mt-2">
+                This will appear on the assessment report and PDF download
+              </p>
+            </Card>
+
             <Card className="p-6 gentle-shadow">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">

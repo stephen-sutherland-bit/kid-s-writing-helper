@@ -2,9 +2,10 @@ import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { ArrowLeft, Copy, Download, Check, Award } from "lucide-react";
+import { ArrowLeft, Copy, Download, Check, Award, FileText, User } from "lucide-react";
 import { storage, FeedbackAudience, FeedbackDepth, FeedbackGrid } from "@/lib/storage";
 import { getLevelFromScore, lookupScaleScore } from "@/lib/scoring";
+import { generateAssessmentPDF } from "@/lib/pdf-report";
 import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
 import {
@@ -211,6 +212,26 @@ ${currentFeedback}
           </div>
         </div>
 
+        {/* Student Name Card */}
+        {assessment.studentName && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            <Card className="p-4 gentle-shadow bg-gradient-to-r from-primary/5 to-accent/5 border-primary/20">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                  <User className="w-5 h-5 text-primary" />
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Student</p>
+                  <p className="text-xl font-semibold text-foreground">{assessment.studentName}</p>
+                </div>
+              </div>
+            </Card>
+          </motion.div>
+        )}
+
         {/* Overall Assessment Card */}
         {scoreConversion && (
           <motion.div
@@ -366,26 +387,46 @@ ${currentFeedback}
               </div>
             </div>
 
-            <div className="flex gap-3 mt-6">
+            <div className="flex flex-wrap gap-3 mt-6">
               <Button
                 onClick={handleCopy}
                 variant="outline"
-                className="flex-1 h-12 rounded-xl border-2"
+                className="flex-1 min-w-[120px] h-12 rounded-xl border-2"
               >
                 {copied ? (
                   <Check className="w-4 h-4 mr-2" />
                 ) : (
                   <Copy className="w-4 h-4 mr-2" />
                 )}
-                {copied ? "Copied!" : "Copy Results"}
+                {copied ? "Copied!" : "Copy"}
               </Button>
 
               <Button
                 onClick={handleDownload}
-                className="flex-1 h-12 bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl"
+                variant="outline"
+                className="flex-1 min-w-[120px] h-12 rounded-xl border-2"
               >
                 <Download className="w-4 h-4 mr-2" />
-                Download as TXT
+                TXT
+              </Button>
+
+              <Button
+                onClick={() => {
+                  generateAssessmentPDF({
+                    assessment,
+                    feedbackAudience,
+                    feedbackDepth,
+                    currentFeedback
+                  });
+                  toast({
+                    title: "PDF Downloaded! ✓",
+                    description: "Professional assessment report saved to your device",
+                  });
+                }}
+                className="flex-1 min-w-[120px] h-12 bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl"
+              >
+                <FileText className="w-4 h-4 mr-2" />
+                PDF Report
               </Button>
             </div>
           </Card>
