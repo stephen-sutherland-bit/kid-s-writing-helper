@@ -208,16 +208,21 @@ export interface AIScoringResult {
   justifications: Record<string, string>;
 }
 
+export interface NextStepsResult {
+  teacherNextSteps: string[];
+  studentBookFeedback: string;
+}
+
 export interface UnifiedAssessmentResult {
   extractedText: string;
   scores: Record<string, number>;
   justifications: Record<string, string>;
   feedback: {
-    student: string;
-    teacher: string;
-    parent: string;
-    formal: string;
+    student: { simple: string; standard: string; comprehensive: string };
+    teacher: { simple: string; standard: string; comprehensive: string };
+    parent: { simple: string; standard: string; comprehensive: string };
   };
+  nextSteps?: NextStepsResult;
 }
 
 /**
@@ -226,7 +231,8 @@ export interface UnifiedAssessmentResult {
  */
 export async function assessWritingWithOpenAI(
   images: string[], // base64 data URLs
-  rubric: Rubric
+  rubric: Rubric,
+  yearLevel?: number
 ): Promise<UnifiedAssessmentResult> {
   try {
     const response = await fetch(
@@ -237,7 +243,7 @@ export async function assessWritingWithOpenAI(
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
         },
-        body: JSON.stringify({ images, rubric }),
+        body: JSON.stringify({ images, rubric, yearLevel }),
       }
     );
 
@@ -261,7 +267,8 @@ export async function assessWritingWithOpenAI(
       extractedText: result.extractedText,
       scores: result.scores,
       justifications: result.justifications,
-      feedback: result.feedback
+      feedback: result.feedback,
+      nextSteps: result.nextSteps
     };
   } catch (error) {
     console.error('OpenAI Assessment Error:', error);

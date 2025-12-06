@@ -6,13 +6,20 @@ import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Camera, Upload, Loader2, Sparkles, ImageIcon, X, Plus, AlertCircle, User } from "lucide-react";
+import { ArrowLeft, Camera, Upload, Loader2, Sparkles, ImageIcon, X, Plus, AlertCircle, User, GraduationCap } from "lucide-react";
 import { validateImageFile } from "@/lib/ocr";
 import { assessWritingWithOpenAI } from "@/lib/scoring";
 import { storage } from "@/lib/storage";
 import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const Assess = () => {
   const navigate = useNavigate();
@@ -28,6 +35,7 @@ const Assess = () => {
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [studentName, setStudentName] = useState("");
+  const [yearLevel, setYearLevel] = useState<number | undefined>(undefined);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     accept: { 'image/*': ['.jpeg', '.jpg', '.png', '.webp'] },
@@ -157,8 +165,8 @@ const Assess = () => {
         description: "This may take a moment as the AI reads the handwriting and assesses against your rubric",
       });
 
-      // Call the unified assessment API with all images
-      const result = await assessWritingWithOpenAI(imagePreviews, rubric);
+      // Call the unified assessment API with all images and year level
+      const result = await assessWritingWithOpenAI(imagePreviews, rubric, yearLevel);
 
       // Store extracted text for display
       setExtractedText(result.extractedText);
@@ -167,14 +175,16 @@ const Assess = () => {
       const totalScore = Object.values(result.scores).reduce((a, b) => a + b, 0);
       const averageScore = totalScore / Object.keys(result.scores).length;
 
-      // Save assessment with student name and feedback
+      // Save assessment with student name, year level, and feedback
       const assessment = {
         id: Date.now().toString(),
         studentName: studentName.trim() || undefined,
+        yearLevel: yearLevel,
         text: result.extractedText,
         scores: result.scores,
         feedback: result.feedback,
         justifications: result.justifications,
+        nextSteps: result.nextSteps,
         timestamp: new Date().toISOString(),
         totalScore,
         averageScore,
@@ -206,6 +216,7 @@ const Assess = () => {
     setPendingFiles([]);
     setExtractedText("");
     setStudentName("");
+    setYearLevel(undefined);
   };
 
   return (
@@ -227,25 +238,57 @@ const Assess = () => {
           </div>
         </div>
 
-        {/* Student Name Input - Always visible */}
+        {/* Student Info Section - Name and Year Level */}
         <Card className="p-6 gentle-shadow">
-          <div className="flex items-center gap-2 mb-4">
-            <User className="w-5 h-5 text-primary" />
-            <Label htmlFor="studentName" className="text-lg font-semibold text-foreground">
-              Student's Name
-            </Label>
+          <div className="grid md:grid-cols-2 gap-6">
+            {/* Student Name */}
+            <div>
+              <div className="flex items-center gap-2 mb-4">
+                <User className="w-5 h-5 text-primary" />
+                <Label htmlFor="studentName" className="text-lg font-semibold text-foreground">
+                  Student's Name
+                </Label>
+              </div>
+              <Input
+                id="studentName"
+                type="text"
+                placeholder="Enter student's name (optional)"
+                value={studentName}
+                onChange={(e) => setStudentName(e.target.value)}
+                className="max-w-md rounded-xl h-12 text-base"
+              />
+              <p className="text-xs text-muted-foreground mt-2">
+                This will appear on the assessment report and PDF download
+              </p>
+            </div>
+
+            {/* Year Level */}
+            <div>
+              <div className="flex items-center gap-2 mb-4">
+                <GraduationCap className="w-5 h-5 text-primary" />
+                <Label htmlFor="yearLevel" className="text-lg font-semibold text-foreground">
+                  Year Level
+                </Label>
+              </div>
+              <Select 
+                value={yearLevel?.toString()} 
+                onValueChange={(v) => setYearLevel(v ? parseInt(v) : undefined)}
+              >
+                <SelectTrigger className="max-w-md rounded-xl h-12 text-base">
+                  <SelectValue placeholder="Select year level (optional)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="0">Year 0</SelectItem>
+                  <SelectItem value="1">Year 1</SelectItem>
+                  <SelectItem value="2">Year 2</SelectItem>
+                  <SelectItem value="3">Year 3</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground mt-2">
+                Enables curriculum-aligned "next steps" feedback based on NZC Phase 1
+              </p>
+            </div>
           </div>
-          <Input
-            id="studentName"
-            type="text"
-            placeholder="Enter student's name (optional)"
-            value={studentName}
-            onChange={(e) => setStudentName(e.target.value)}
-            className="max-w-md rounded-xl h-12 text-base"
-          />
-          <p className="text-xs text-muted-foreground mt-2">
-            This will appear on the assessment report and PDF download
-          </p>
         </Card>
 
         {/* Upload Photos Section */}

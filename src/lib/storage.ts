@@ -21,9 +21,15 @@ export interface FeedbackGrid {
   parent: { simple: string; standard: string; comprehensive: string };
 }
 
+export interface NextSteps {
+  teacherNextSteps: string[];
+  studentBookFeedback: string;
+}
+
 export interface Assessment {
   id: string;
   studentName?: string; // Optional student name
+  yearLevel?: number; // Year 0-3 for NZC Phase 1
   text: string;
   scores: Record<string, number>;
   feedback: FeedbackGrid | {
@@ -38,6 +44,7 @@ export interface Assessment {
   }; // Support new grid format and old formats for backward compatibility
   timestamp: string;
   justifications?: Record<string, string>; // AI justifications for each score
+  nextSteps?: NextSteps; // Curriculum-aligned next steps
 }
 
 // Scoring chart interface for e-asTTle score conversion
