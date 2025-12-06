@@ -39,13 +39,13 @@ export function generateAssessmentPDF(options: PDFReportOptions): void {
   const margin = 15;
   const contentWidth = pageWidth - margin * 2;
   
-  // Colors - warmer, more professional palette
-  const headerColor: [number, number, number] = [45, 55, 72]; // Slate gray
-  const accentColor: [number, number, number] = [99, 102, 241]; // Indigo
-  const textColor: [number, number, number] = [31, 41, 55]; // Dark gray
-  const mutedColor: [number, number, number] = [107, 114, 128]; // Gray
-  const borderColor: [number, number, number] = [209, 213, 219]; // Light gray
-  const bgColor: [number, number, number] = [249, 250, 251]; // Off-white
+  // Colors - purple/violet education theme
+  const headerColor: [number, number, number] = [88, 28, 135]; // Deep purple
+  const accentColor: [number, number, number] = [139, 47, 201]; // Vibrant purple
+  const textColor: [number, number, number] = [45, 45, 60]; // Dark slate
+  const mutedColor: [number, number, number] = [107, 100, 128]; // Purple-gray
+  const borderColor: [number, number, number] = [209, 200, 225]; // Light purple border
+  const bgColor: [number, number, number] = [248, 245, 252]; // Light purple tint
   
   // Calculate scores
   const totalScore = Object.values(assessment.scores).reduce((a, b) => a + b, 0);
