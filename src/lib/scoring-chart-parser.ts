@@ -2,8 +2,16 @@
 import * as pdfjsLib from 'pdfjs-dist';
 import { ScoringChart, ScoringChartEntry, DEFAULT_SCORING_CHART } from './storage';
 
-// Configure PDF.js worker - using unpkg for better reliability
-pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.js`;
+// Lazy-load PDF.js worker configuration to prevent app crashes
+let pdfWorkerConfigured = false;
+
+function ensurePdfWorkerConfigured() {
+  if (!pdfWorkerConfigured) {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 
+      'https://unpkg.com/pdfjs-dist@5.4.449/build/pdf.worker.min.mjs';
+    pdfWorkerConfigured = true;
+  }
+}
 
 export interface ParsedScoringChart {
   chart: ScoringChart;
@@ -14,6 +22,7 @@ export interface ParsedScoringChart {
  * Parse a PDF file to extract scoring chart data
  */
 export async function parsePdfScoringChart(file: File): Promise<ParsedScoringChart> {
+  ensurePdfWorkerConfigured();
   console.log('Starting scoring chart PDF parsing...');
   
   const arrayBuffer = await file.arrayBuffer();
