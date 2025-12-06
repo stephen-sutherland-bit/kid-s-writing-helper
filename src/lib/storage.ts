@@ -23,6 +23,7 @@ export interface FeedbackGrid {
 
 export interface Assessment {
   id: string;
+  studentName?: string; // Optional student name
   text: string;
   scores: Record<string, number>;
   feedback: FeedbackGrid | {
