@@ -30,30 +30,22 @@ const levelToYearExpectation: Record<string, string> = {
   '>6B': 'Above Year 11'
 };
 
-const audienceLabels: Record<FeedbackAudience, string> = {
-  student: 'For Students',
-  teacher: 'For Teachers',
-  parent: 'For Parents'
-};
-
-const depthLabels: Record<FeedbackDepth, string> = {
-  simple: 'Quick Summary',
-  standard: 'Standard',
-  comprehensive: 'Comprehensive'
-};
-
 export function generateAssessmentPDF(options: PDFReportOptions): void {
-  const { assessment, feedbackAudience, feedbackDepth, currentFeedback } = options;
+  const { assessment, currentFeedback } = options;
   
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
-  const margin = 20;
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const margin = 15;
   const contentWidth = pageWidth - margin * 2;
   
-  // Colors
-  const primaryColor: [number, number, number] = [74, 124, 155]; // Soft blue
-  const textColor: [number, number, number] = [51, 51, 51]; // Dark gray
-  const lightBg: [number, number, number] = [248, 250, 252]; // Light background
+  // Colors - warmer, more professional palette
+  const headerColor: [number, number, number] = [45, 55, 72]; // Slate gray
+  const accentColor: [number, number, number] = [99, 102, 241]; // Indigo
+  const textColor: [number, number, number] = [31, 41, 55]; // Dark gray
+  const mutedColor: [number, number, number] = [107, 114, 128]; // Gray
+  const borderColor: [number, number, number] = [209, 213, 219]; // Light gray
+  const bgColor: [number, number, number] = [249, 250, 251]; // Off-white
   
   // Calculate scores
   const totalScore = Object.values(assessment.scores).reduce((a, b) => a + b, 0);
@@ -61,130 +53,135 @@ export function generateAssessmentPDF(options: PDFReportOptions): void {
   const maxPossibleScore = Object.keys(assessment.scores).length * 8;
   const scoreConversion = lookupScaleScore(totalScore);
   
-  let yPos = margin;
-  
-  // Header
-  doc.setFillColor(...primaryColor);
-  doc.rect(0, 0, pageWidth, 40, 'F');
-  
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(22);
-  doc.setFont('helvetica', 'bold');
-  doc.text('Writing Assessment Report', pageWidth / 2, 18, { align: 'center' });
-  
-  doc.setFontSize(11);
-  doc.setFont('helvetica', 'normal');
   const assessmentDate = new Date(assessment.timestamp).toLocaleDateString('en-NZ', {
+    weekday: 'long',
     year: 'numeric',
     month: 'long',
     day: 'numeric'
   });
-  doc.text(assessmentDate, pageWidth / 2, 32, { align: 'center' });
   
-  yPos = 55;
+  let yPos = margin;
   
-  // Student Details Box
-  doc.setFillColor(...lightBg);
-  doc.roundedRect(margin, yPos, contentWidth, 25, 3, 3, 'F');
+  // === HEADER SECTION ===
+  doc.setFillColor(...headerColor);
+  doc.rect(0, 0, pageWidth, 35, 'F');
   
-  doc.setTextColor(...textColor);
-  doc.setFontSize(11);
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(20);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Writing Assessment Report', margin, 22);
+  
+  doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
-  doc.text('Student:', margin + 8, yPos + 10);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(14);
-  doc.text(assessment.studentName || 'Not specified', margin + 8, yPos + 19);
+  doc.text(assessmentDate, pageWidth - margin, 22, { align: 'right' });
   
-  yPos += 35;
+  yPos = 45;
   
-  // Overall Results Section
-  doc.setTextColor(...primaryColor);
-  doc.setFontSize(14);
-  doc.setFont('helvetica', 'bold');
-  doc.text('Overall Assessment', margin, yPos);
+  // === STUDENT INFO BAR ===
+  doc.setDrawColor(...borderColor);
+  doc.setLineWidth(0.5);
+  doc.line(margin, yPos, pageWidth - margin, yPos);
   
   yPos += 8;
   
-  // Results boxes in a row
-  const boxWidth = (contentWidth - 10) / 3;
-  const boxHeight = 35;
-  
-  // Box 1: Total Score
-  doc.setFillColor(...lightBg);
-  doc.roundedRect(margin, yPos, boxWidth, boxHeight, 3, 3, 'F');
-  doc.setTextColor(120, 120, 120);
+  doc.setTextColor(...mutedColor);
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
-  doc.text('Total Score', margin + boxWidth / 2, yPos + 10, { align: 'center' });
+  doc.text('STUDENT NAME', margin, yPos);
+  
   doc.setTextColor(...textColor);
-  doc.setFontSize(16);
+  doc.setFontSize(14);
   doc.setFont('helvetica', 'bold');
-  doc.text(`${totalScore}/${maxPossibleScore}`, margin + boxWidth / 2, yPos + 25, { align: 'center' });
-  
-  // Box 2: Scale Score
-  doc.setFillColor(...lightBg);
-  doc.roundedRect(margin + boxWidth + 5, yPos, boxWidth, boxHeight, 3, 3, 'F');
-  doc.setTextColor(120, 120, 120);
-  doc.setFontSize(9);
-  doc.setFont('helvetica', 'normal');
-  doc.text('Scale Score', margin + boxWidth + 5 + boxWidth / 2, yPos + 10, { align: 'center' });
-  doc.setTextColor(...textColor);
-  doc.setFontSize(16);
-  doc.setFont('helvetica', 'bold');
-  if (scoreConversion) {
-    doc.text(`${scoreConversion.scaleScore} aWs`, margin + boxWidth + 5 + boxWidth / 2, yPos + 22, { align: 'center' });
-    doc.setFontSize(8);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(120, 120, 120);
-    doc.text(`±${scoreConversion.errorMargin}`, margin + boxWidth + 5 + boxWidth / 2, yPos + 30, { align: 'center' });
-  } else {
-    doc.text('N/A', margin + boxWidth + 5 + boxWidth / 2, yPos + 25, { align: 'center' });
-  }
-  
-  // Box 3: Curriculum Level (highlighted)
-  doc.setFillColor(...primaryColor);
-  doc.roundedRect(margin + (boxWidth + 5) * 2, yPos, boxWidth, boxHeight, 3, 3, 'F');
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(9);
-  doc.setFont('helvetica', 'normal');
-  doc.text('Curriculum Level', margin + (boxWidth + 5) * 2 + boxWidth / 2, yPos + 10, { align: 'center' });
-  doc.setFontSize(20);
-  doc.setFont('helvetica', 'bold');
-  if (scoreConversion) {
-    doc.text(scoreConversion.curriculumLevel, margin + (boxWidth + 5) * 2 + boxWidth / 2, yPos + 26, { align: 'center' });
-  } else {
-    doc.text('N/A', margin + (boxWidth + 5) * 2 + boxWidth / 2, yPos + 26, { align: 'center' });
-  }
-  
-  yPos += boxHeight + 5;
-  
-  // Year level expectation
-  if (scoreConversion) {
-    doc.setTextColor(120, 120, 120);
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'italic');
-    const yearExpectation = levelToYearExpectation[scoreConversion.curriculumLevel] || '';
-    doc.text(`Expected level: ${yearExpectation}`, pageWidth / 2, yPos + 5, { align: 'center' });
-  }
+  doc.text(assessment.studentName || 'Not specified', margin, yPos + 8);
   
   yPos += 18;
   
-  // Category Scores Table
-  doc.setTextColor(...primaryColor);
-  doc.setFontSize(14);
+  doc.setDrawColor(...borderColor);
+  doc.line(margin, yPos, pageWidth - margin, yPos);
+  
+  yPos += 12;
+  
+  // === RESULTS SUMMARY ===
+  doc.setTextColor(...headerColor);
+  doc.setFontSize(11);
   doc.setFont('helvetica', 'bold');
-  doc.text('Category Scores', margin, yPos);
+  doc.text('ASSESSMENT RESULTS', margin, yPos);
+  
+  yPos += 10;
+  
+  // Three-column results layout
+  const colWidth = (contentWidth - 20) / 3;
+  
+  // Column 1: Raw Score
+  doc.setFillColor(...bgColor);
+  doc.roundedRect(margin, yPos, colWidth, 40, 2, 2, 'F');
+  doc.setTextColor(...mutedColor);
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'normal');
+  doc.text('RAW SCORE', margin + colWidth / 2, yPos + 10, { align: 'center' });
+  doc.setTextColor(...textColor);
+  doc.setFontSize(18);
+  doc.setFont('helvetica', 'bold');
+  doc.text(`${totalScore}`, margin + colWidth / 2, yPos + 26, { align: 'center' });
+  doc.setTextColor(...mutedColor);
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  doc.text(`of ${maxPossibleScore}`, margin + colWidth / 2, yPos + 34, { align: 'center' });
+  
+  // Column 2: Scale Score
+  doc.setFillColor(...bgColor);
+  doc.roundedRect(margin + colWidth + 10, yPos, colWidth, 40, 2, 2, 'F');
+  doc.setTextColor(...mutedColor);
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'normal');
+  doc.text('SCALE SCORE (aWs)', margin + colWidth + 10 + colWidth / 2, yPos + 10, { align: 'center' });
+  doc.setTextColor(...textColor);
+  doc.setFontSize(18);
+  doc.setFont('helvetica', 'bold');
+  if (scoreConversion) {
+    doc.text(`${scoreConversion.scaleScore}`, margin + colWidth + 10 + colWidth / 2, yPos + 26, { align: 'center' });
+    doc.setTextColor(...mutedColor);
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`± ${scoreConversion.errorMargin}`, margin + colWidth + 10 + colWidth / 2, yPos + 34, { align: 'center' });
+  } else {
+    doc.text('—', margin + colWidth + 10 + colWidth / 2, yPos + 26, { align: 'center' });
+  }
+  
+  // Column 3: Curriculum Level (highlighted)
+  doc.setFillColor(...accentColor);
+  doc.roundedRect(margin + (colWidth + 10) * 2, yPos, colWidth, 40, 2, 2, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'normal');
+  doc.text('CURRICULUM LEVEL', margin + (colWidth + 10) * 2 + colWidth / 2, yPos + 10, { align: 'center' });
+  doc.setFontSize(22);
+  doc.setFont('helvetica', 'bold');
+  if (scoreConversion) {
+    doc.text(scoreConversion.curriculumLevel, margin + (colWidth + 10) * 2 + colWidth / 2, yPos + 28, { align: 'center' });
+    const yearExp = levelToYearExpectation[scoreConversion.curriculumLevel] || '';
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.text(yearExp, margin + (colWidth + 10) * 2 + colWidth / 2, yPos + 36, { align: 'center' });
+  } else {
+    doc.text('—', margin + (colWidth + 10) * 2 + colWidth / 2, yPos + 28, { align: 'center' });
+  }
+  
+  yPos += 52;
+  
+  // === CATEGORY SCORES TABLE ===
+  doc.setTextColor(...headerColor);
+  doc.setFontSize(11);
+  doc.setFont('helvetica', 'bold');
+  doc.text('CATEGORY BREAKDOWN', margin, yPos);
   
   yPos += 5;
   
   const tableData = Object.entries(assessment.scores).map(([category, score]) => [
     category,
     getLevelFromScore(score),
-    `${score}/8`
+    `${score} / 8`
   ]);
-  
-  // Add average row
-  tableData.push(['Average', '', `${averageScore.toFixed(1)}/8`]);
   
   autoTable(doc, {
     startY: yPos,
@@ -192,119 +189,109 @@ export function generateAssessmentPDF(options: PDFReportOptions): void {
     body: tableData,
     margin: { left: margin, right: margin },
     headStyles: {
-      fillColor: primaryColor,
+      fillColor: headerColor,
       textColor: [255, 255, 255],
       fontStyle: 'bold',
-      fontSize: 10
+      fontSize: 9,
+      cellPadding: 4
     },
     bodyStyles: {
       textColor: textColor,
-      fontSize: 10
+      fontSize: 9,
+      cellPadding: 4
     },
     alternateRowStyles: {
-      fillColor: [248, 250, 252]
+      fillColor: bgColor
     },
     styles: {
-      cellPadding: 4,
-      lineColor: [220, 220, 220],
+      lineColor: borderColor,
       lineWidth: 0.1
     },
     columnStyles: {
-      0: { fontStyle: 'bold' },
-      1: { halign: 'center', cellWidth: 30 },
-      2: { halign: 'center', cellWidth: 30 }
+      0: { fontStyle: 'bold', cellWidth: 80 },
+      1: { halign: 'center', cellWidth: 35 },
+      2: { halign: 'center', cellWidth: 35 }
     }
   });
   
   // @ts-ignore - jspdf-autotable adds this property
-  yPos = doc.lastAutoTable.finalY + 15;
+  yPos = doc.lastAutoTable.finalY + 12;
   
-  // Check if we need a new page for feedback
-  if (yPos > 200) {
-    doc.addPage();
-    yPos = margin;
-  }
-  
-  // Feedback Section
-  doc.setTextColor(...primaryColor);
-  doc.setFontSize(14);
+  // === TEACHER NOTES SECTION ===
+  doc.setTextColor(...headerColor);
+  doc.setFontSize(11);
   doc.setFont('helvetica', 'bold');
-  doc.text('Feedback', margin, yPos);
+  doc.text('TEACHER NOTES', margin, yPos);
   
-  doc.setTextColor(120, 120, 120);
-  doc.setFontSize(9);
-  doc.setFont('helvetica', 'normal');
-  doc.text(`(${audienceLabels[feedbackAudience]} - ${depthLabels[feedbackDepth]})`, margin + 50, yPos);
+  yPos += 6;
   
-  yPos += 8;
+  // Calculate feedback box height dynamically
+  doc.setFontSize(10);
+  const feedbackLines = doc.splitTextToSize(currentFeedback, contentWidth - 12);
+  const feedbackBoxHeight = Math.max(30, Math.min(60, feedbackLines.length * 5 + 12));
   
-  doc.setFillColor(...lightBg);
-  doc.roundedRect(margin, yPos, contentWidth, 45, 3, 3, 'F');
+  doc.setFillColor(...bgColor);
+  doc.setDrawColor(...borderColor);
+  doc.roundedRect(margin, yPos, contentWidth, feedbackBoxHeight, 2, 2, 'FD');
   
   doc.setTextColor(...textColor);
-  doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
   
-  // Wrap feedback text
-  const feedbackLines = doc.splitTextToSize(currentFeedback, contentWidth - 16);
-  const maxLines = 8; // Limit lines to fit in box
-  const displayLines = feedbackLines.slice(0, maxLines);
-  if (feedbackLines.length > maxLines) {
-    displayLines[maxLines - 1] += '...';
+  // Limit lines to fit
+  const maxFeedbackLines = Math.floor((feedbackBoxHeight - 10) / 5);
+  const displayFeedbackLines = feedbackLines.slice(0, maxFeedbackLines);
+  if (feedbackLines.length > maxFeedbackLines) {
+    displayFeedbackLines[maxFeedbackLines - 1] = displayFeedbackLines[maxFeedbackLines - 1].slice(0, -3) + '...';
   }
   
-  doc.text(displayLines, margin + 8, yPos + 10);
+  doc.text(displayFeedbackLines, margin + 6, yPos + 8);
   
-  yPos += 55;
+  yPos += feedbackBoxHeight + 12;
   
   // Check if we need a new page for student writing
-  if (yPos > 200) {
+  if (yPos > pageHeight - 80) {
     doc.addPage();
     yPos = margin;
   }
   
-  // Student Writing Section
-  doc.setTextColor(...primaryColor);
-  doc.setFontSize(14);
+  // === STUDENT WRITING SECTION ===
+  doc.setTextColor(...headerColor);
+  doc.setFontSize(11);
   doc.setFont('helvetica', 'bold');
-  doc.text("Student's Writing", margin, yPos);
+  doc.text('STUDENT WRITING SAMPLE', margin, yPos);
   
-  yPos += 8;
+  yPos += 6;
   
-  doc.setFillColor(...lightBg);
-  
-  // Calculate box height based on text
   doc.setFontSize(9);
-  const writingLines = doc.splitTextToSize(assessment.text, contentWidth - 16);
-  const maxWritingLines = 20;
+  const writingLines = doc.splitTextToSize(assessment.text, contentWidth - 12);
+  const maxWritingHeight = pageHeight - yPos - 25;
+  const maxWritingLines = Math.floor(maxWritingHeight / 4);
   const displayWritingLines = writingLines.slice(0, maxWritingLines);
   if (writingLines.length > maxWritingLines) {
-    displayWritingLines[maxWritingLines - 1] += '...';
+    displayWritingLines[maxWritingLines - 1] = displayWritingLines[maxWritingLines - 1].slice(0, -3) + '...';
   }
   
-  const writingBoxHeight = Math.min(80, displayWritingLines.length * 4 + 16);
-  doc.roundedRect(margin, yPos, contentWidth, writingBoxHeight, 3, 3, 'F');
+  const writingBoxHeight = Math.min(maxWritingHeight, displayWritingLines.length * 4 + 12);
+  
+  doc.setFillColor(...bgColor);
+  doc.setDrawColor(...borderColor);
+  doc.roundedRect(margin, yPos, contentWidth, writingBoxHeight, 2, 2, 'FD');
   
   doc.setTextColor(...textColor);
   doc.setFont('helvetica', 'normal');
-  doc.text(displayWritingLines, margin + 8, yPos + 10);
+  doc.text(displayWritingLines, margin + 6, yPos + 8);
   
-  yPos += writingBoxHeight + 15;
-  
-  // Footer
-  const footerY = doc.internal.pageSize.getHeight() - 15;
-  doc.setDrawColor(220, 220, 220);
+  // === FOOTER ===
+  const footerY = pageHeight - 10;
+  doc.setDrawColor(...borderColor);
+  doc.setLineWidth(0.3);
   doc.line(margin, footerY - 5, pageWidth - margin, footerY - 5);
   
-  doc.setTextColor(150, 150, 150);
+  doc.setTextColor(...mutedColor);
   doc.setFontSize(8);
   doc.setFont('helvetica', 'normal');
-  doc.text(
-    `Assessment completed on ${assessmentDate} • e-asTTle Writing Assessment`,
-    pageWidth / 2,
-    footerY,
-    { align: 'center' }
-  );
+  doc.text('e-asTTle Writing Assessment', margin, footerY);
+  doc.text(assessmentDate, pageWidth - margin, footerY, { align: 'right' });
   
   // Save the PDF
   const studentNameSlug = assessment.studentName 
