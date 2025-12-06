@@ -227,6 +227,27 @@ const Assess = () => {
           </div>
         </div>
 
+        {/* Student Name Input - Always visible */}
+        <Card className="p-6 gentle-shadow">
+          <div className="flex items-center gap-2 mb-4">
+            <User className="w-5 h-5 text-primary" />
+            <Label htmlFor="studentName" className="text-lg font-semibold text-foreground">
+              Student's Name
+            </Label>
+          </div>
+          <Input
+            id="studentName"
+            type="text"
+            placeholder="Enter student's name (optional)"
+            value={studentName}
+            onChange={(e) => setStudentName(e.target.value)}
+            className="max-w-md rounded-xl h-12 text-base"
+          />
+          <p className="text-xs text-muted-foreground mt-2">
+            This will appear on the assessment report and PDF download
+          </p>
+        </Card>
+
         {/* Upload Photos Section */}
         {imagePreviews.length === 0 && (
           <Card className="p-8 gentle-shadow">
@@ -312,27 +333,6 @@ const Assess = () => {
         {/* Review & Assess Section */}
         {imagePreviews.length > 0 && (
           <div className="space-y-6">
-            {/* Student Name Input */}
-            <Card className="p-6 gentle-shadow">
-              <div className="flex items-center gap-2 mb-4">
-                <User className="w-5 h-5 text-primary" />
-                <Label htmlFor="studentName" className="text-lg font-semibold text-foreground">
-                  Student's Name
-                </Label>
-              </div>
-              <Input
-                id="studentName"
-                type="text"
-                placeholder="Enter student's name (optional)"
-                value={studentName}
-                onChange={(e) => setStudentName(e.target.value)}
-                className="max-w-md rounded-xl h-12 text-base"
-              />
-              <p className="text-xs text-muted-foreground mt-2">
-                This will appear on the assessment report and PDF download
-              </p>
-            </Card>
-
             <Card className="p-6 gentle-shadow">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
